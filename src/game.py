@@ -13,18 +13,19 @@ class SpaceShip(Sprite):
                  velocity=int):
         super().__init__()
         self.orig_image = image
-        self.speed = 0.0
+        self.velocity = Vector2(0, 0)
         self.direction = Vector2(direction).normalize()
         self.pos = Vector2(pos)
         self.update(0)
 
     def update(self, diff=float):
-        if self.speed > 6:
-            self.speed = 6
+        length = self.velocity.length_squared()
+        if length > 36:
+            self.velocity.scale_to_length(6)
         angle = self.direction.angle_to(Vector2(1, 0))
         self.image = pygame.transform.rotate(self.orig_image, angle)
         self.rect = self.image.get_rect()
-        self.pos += self.direction * self.speed * diff
+        self.pos += self.velocity * diff
         self.rect.center = self.pos
         self.control(diff)
 
@@ -47,9 +48,7 @@ class Player(SpaceShip):
         if key[pygame.K_RIGHT]:
             self.direction = self.direction.rotate(5 * diff)
         if key[pygame.K_UP]:
-            self.speed += 0.2 * diff
-        if self.speed > 0.0:
-            self.speed -= 0.05 * diff
+            self.velocity += self.direction * diff * 0.2
 
 
 class MayhemGame:
