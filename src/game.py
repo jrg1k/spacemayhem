@@ -14,12 +14,14 @@ class SpaceShip:
         else:
             self.direction.normalize_ip()
         self.velocity = Vector2(velocity)
+        self.ctrl = {"left": 0, "right": 0, "forward": 0}
 
-    def update(self, diff=float):
-        length = self.velocity.length_squared()
+    def update(self, diff=0.0):
+        self.control(diff)
+        length = int(self.velocity.length_squared())
         if length > 36:
             self.velocity.scale_to_length(6)
-        self.pos += self.velocity * diff
+        self.pos += (self.velocity * diff)
 
     def data(self):
         return ({
@@ -28,13 +30,15 @@ class SpaceShip:
             "velocity": (self.velocity.x, self.velocity.y)
         })
 
-    def control(self, ctrl, diff=1):
-        if ctrl["left"]:
+    def control(self, diff):
+        if self.ctrl["left"]:
             self.direction = self.direction.rotate(-5 * diff)
-        if ctrl["right"]:
+        if self.ctrl["right"]:
             self.direction = self.direction.rotate(5 * diff)
-        if ctrl["forward"]:
+        if self.ctrl["forward"]:
             self.velocity += self.direction * diff * 0.2
+        for c in self.ctrl:
+            c = 0
 
 
 class LocalSpaceShip(Sprite):
@@ -46,7 +50,6 @@ class LocalSpaceShip(Sprite):
 
     def update(self, data):
         self.pos = Vector2(data["pos"])
-        print(self.pos)
         self.direction = Vector2(data["dir"])
         self.velocity = Vector2(data["velocity"])
         angle = self.direction.angle_to(Vector2(1, 0))
@@ -85,7 +88,6 @@ class MayhemGame:
         self.control["left"] = key[pygame.K_LEFT]
         self.control["right"] = key[pygame.K_RIGHT]
         self.control["forward"] = key[pygame.K_UP]
-        print(self.control)
         return self.control
 
     def draw(self):

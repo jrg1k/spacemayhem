@@ -3,6 +3,7 @@
 import pygame
 import config
 import json
+import time
 import asyncio
 from game import MayhemGame
 
@@ -17,7 +18,6 @@ class Client:
 
 async def send(client):
     while True:
-        await asyncio.sleep(0.02)
         msg = client.data
         if msg is None:
             continue
@@ -27,18 +27,18 @@ async def send(client):
         msg = json.dumps(msg) + "\n"
         client.writer.write(msg.encode())
         await client.writer.drain()
+        await asyncio.sleep(0.02)
 
 
 async def recv(client):
-    print(1)
     while True:
-        await asyncio.sleep(0.02)
         data = await client.reader.readline()
         if len(data) == 0 and client.reader.at_eof():
             print("client disconnected")
             break
         msg = data.decode()
         client.latestupdate = json.loads(msg)
+        await asyncio.sleep(0.01)
 
 
 async def game(client):
@@ -47,16 +47,17 @@ async def game(client):
     game = MayhemGame(config.SCREENW, config.SCREENH, config.FNAME_BG)
 
     while True:
+        t = time.time()
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 print(event)
                 exit()
-        await asyncio.sleep(0.02)
         game.draw()
         data = game.update(client.latestupdate)
-        print(data)
         client.data = data
         pygame.display.update()
+        t - time.time()
+        await asyncio.sleep(0.1 - t)
 
 
 async def main():
