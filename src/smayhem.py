@@ -17,17 +17,15 @@ class Client:
 
 
 async def send(client):
-    while True:
-        msg = client.data
-        if msg is None:
-            continue
-        if client.writer.is_closing():
-            print("connection closed")
-            break
-        msg = json.dumps(msg) + "\n"
-        client.writer.write(msg.encode())
-        await client.writer.drain()
-        await asyncio.sleep(0.02)
+    msg = client.data
+    if client.writer.is_closing():
+        print("connection closed")
+        return
+    msg = json.dumps(msg) + "\n"
+    msg = msg.encode()
+    print(msg)
+    client.writer.write(msg)
+    await client.writer.drain()
 
 
 async def recv(client):
@@ -38,7 +36,6 @@ async def recv(client):
             break
         msg = data.decode()
         client.latestupdate = json.loads(msg)
-        await asyncio.sleep(0.01)
 
 
 async def game(client):
@@ -55,6 +52,7 @@ async def game(client):
         game.draw()
         data = game.update(client.latestupdate)
         client.data = data
+        await send(client)
         pygame.display.update()
         t - time.time()
         await asyncio.sleep(0.1 - t)
@@ -62,8 +60,10 @@ async def game(client):
 
 async def main():
     reader, writer = await asyncio.open_connection("127.0.0.1", 55555)
+    data = await reader.readline()
+    print(data)
     client = Client(reader, writer)
-    await asyncio.gather(send(client), recv(client), game(client))
+    await asyncio.gather(recv(client), game(client))
 
 
 if __name__ == "__main__":

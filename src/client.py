@@ -1,49 +1,59 @@
 #!/usr/bin/env python3
+
 import asyncio
+import time
 import json
 
+PORT = 55555
 
-class Connection:
-    def __init__(self, addr=str, port=int):
-        self._in = asyncio.Queue()
-        self._out = asyncio.Queue()
-        asyncio.run(self._connect(addr, port))
+class ConnHandler:
 
-    async def _connect(self, addr, port):
-        self.reader, self.writer = await asyncio.open_connection(addr, port)
-        self._readtask = asyncio.create_task(self._read())
-        self._writetask = asyncio.create_task(self._write())
+    def __init__(self, host, port):
+        self.host = host
+        self.port = port
+        self._in_queue = asyncio.Queue()
+        self._out_queue = asyncio.Queue()
+        asyncio.run(self._connect())
 
-    async def _read(self):
+    # Major issue: where do we let the event queue run? Is it enough that send_event is called?
+    # Periodic sends will let the receiver run as well. Queueing some async routine in the
+    # receiver seems to be enough as well.
+    async def _connect(self):
+        self.reader, self.writer = await asyncio.open_connection(self.host, self.port)
+        asyncio.create_task(self._reader())
+        asyncio.create_task(self._writer())
+
+    async def _reader(self):
         while True:
             msg = await self.reader.readline()
             if len(msg) == 0 and self.reader.at_eof():
+                print("Closed stream")
                 break
-            await self._in.put(json.loads(msg))
+            await self._in_queue.put(json.loads(msg))
 
-    async def _write(self):
+    async def _writer(self):
         while True:
-            msg = await self._out.get()
-            self.writer.write(msg.encode)
+            msg = await self._out_queue.get()
+            if self.writer.is_closing():
+                break
+            self.writer.write(msg.encode())
             await self.writer.drain()
 
-    async def send(self, msg):
-        msg = json.dumps(msg) + "\n"
-        await self._out.put(msg)
-        await self._writetask
+    def send_event(self, msg):
+        jstr = json.dumps(msg) + "\n"
+        asyncio.run(self._out_queue.put(jstr))
 
-    async def get(self):
-        await self._readtask
+    def get_events(self):
+        """Yields incoming events until the queue is empty."""
+        asyncio.run(self._reader())
         while True:
             try:
-                yield self._in.get_nowait()
+                yield self._in_queue.get_nowait()
             except asyncio.QueueEmpty:
                 return
 
-    def exchange(self, msg):
-        asyncio.run(self.send(msg))
-        asyncio.run(self.get())
+conn = ConnHandler("127.0.0.1", 55555)
 
-
-conn = Connection("127.0.0.1", 55555)
-conn.exchange({"my message": "hey"})
+while True:
+    for event in conn.get_events():
+        print(event)

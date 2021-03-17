@@ -23,12 +23,6 @@ class SpaceShip:
             self.velocity.scale_to_length(6)
         self.pos += (self.velocity * diff)
 
-    def data(self):
-        return ({
-            "pos": (self.pos.x, self.pos.y),
-            "dir": (self.direction.x, self.direction.y),
-            "velocity": (self.velocity.x, self.velocity.y)
-        })
 
     def control(self, diff):
         if self.ctrl["left"]:
