@@ -75,7 +75,8 @@ async def init_player(reader, writer):
 
 
 async def main():
-    server = await asyncio.start_server(init_player, "127.0.0.1", config.PORT)
+    server = await asyncio.start_server(init_player, config.ADDRESS,
+                                        config.PORT)
 
     addr = server.sockets[0].getsockname()
     print(f'Serving on {addr}')

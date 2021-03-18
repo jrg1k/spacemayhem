@@ -1,6 +1,7 @@
 import sys
 
-if sys.argc < 3:
+if len(sys.argv) < 3:
+    print("Usage example: ./run 127.0.0.1 1234")
     exit()
 
 ADDRESS = str(sys.argv[1])
