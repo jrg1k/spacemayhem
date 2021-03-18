@@ -3,6 +3,7 @@
 import asyncio
 import json
 import time
+import config
 from game import SpaceShip
 
 players = []
@@ -74,7 +75,7 @@ async def init_player(reader, writer):
 
 
 async def main():
-    server = await asyncio.start_server(init_player, "127.0.0.1", 55555)
+    server = await asyncio.start_server(init_player, "127.0.0.1", config.PORT)
 
     addr = server.sockets[0].getsockname()
     print(f'Serving on {addr}')

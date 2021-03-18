@@ -96,7 +96,7 @@ async def game(client):
 
 
 async def main():
-    reader, writer = await asyncio.open_connection("127.0.0.1", 55555)
+    reader, writer = await asyncio.open_connection(config.ADDRESS, config.PORT)
     data = await reader.readline()
     data = json.loads(data.decode())
     client = MayhemGame(config.SCREENW, config.SCREENH, config.FNAME_BG,
