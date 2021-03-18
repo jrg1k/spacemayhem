@@ -2,18 +2,16 @@
 
 import asyncio
 import json
-from game import SpaceShip
 import time
+from game import SpaceShip
 
-clients = []
+players = []
 
-def gamedata(clients):
+
+def gamedata():
     msg = {}
-    for c in clients:
-        msg[c.id] = {
-                "pos": (c.ship.pos.x, c.ship.pos.y), 
-                "dir": (c.ship.direction.x, c.ship.direction.y), 
-                "velocity": (c.ship.velocity.x, c.ship.velocity.y)}
+    for p in players:
+        msg[p.id] = p.data()
     return msg
 
 
@@ -25,55 +23,58 @@ class Player:
         self.id = self.__hash__()
 
     def data(self):
-        data = {}
-        data[self.id] = { 
+        data = {
             "pos": (self.ship.pos.x, self.ship.pos.y),
             "dir": (self.ship.direction.x, self.ship.direction.y),
-            "velocity": (self.ship.velocity.x, self.ship.velocity.y)}
+            "velocity": (self.ship.velocity.x, self.ship.velocity.y)
+        }
         return data
 
-async def send(client, msg):
-    if client.writer.is_closing():
-        print("connection closed")
-        clients.remove(client)
-        return
-    msg = json.dumps(msg) + "\n"
-    client.writer.write(msg.encode())
-    await client.writer.drain()
+    async def send(self, msg):
+        if self.writer.is_closing():
+            print("connection closed")
+            players.remove(self)
+            return
+        msg = json.dumps(msg) + "\n"
+        self.writer.write(msg.encode())
+        await self.writer.drain()
+
+    async def recv(self):
+        while True:
+            data = await self.reader.readline()
+            if len(data) == 0 and self.reader.at_eof():
+                print("connection closed")
+                players.remove(self)
+                break
+            msg = data.decode()
+            self.ship.ctrl = json.loads(msg)
+
+    async def update(self):
+        while True:
+            t = time.time()
+            diff = 1.0  # must fix
+            self.ship.update(diff)
+            await self.send(gamedata())
+            t = time.time() - t
+            await asyncio.sleep(0.02 - t)
 
 
-async def recv(client):
-    while True:
-        data = await client.reader.readline()
-        print(data)
-        if len(data) == 0 and client.reader.at_eof():
-            print("client disconnected")
-            clients.remove(client)
-            break
-        msg = data.decode()
-        client.ship.ctrl = json.loads(msg)
-
-
-async def game():
-    while True:
-        t = time.time()
-        diff = 1.0 # must fix
-        for client in clients:
-            client.ship.update(diff)
-            await send(client, gamedata(clients))
-        t = time.time() - t
-        await asyncio.sleep(0.02 - t)
-
-async def handle_client(reader, writer):
-    client = Player(reader, writer)
-    await send(client, client.data())
-    clients.append(client)
-    print("client connected")
-    await asyncio.gather(recv(client), game())
+async def init_player(reader, writer):
+    player = Player(reader, writer)
+    init_msg = {}
+    init_msg[player.id] = player.data()
+    await player.send(init_msg)
+    players.append(player)
+    print("player connected")
+    try:
+        await asyncio.gather(player.recv(), player.update())
+    except ConnectionResetError as e:
+        print(e)
     writer.close()
 
+
 async def main():
-    server = await asyncio.start_server(handle_client, '127.0.0.1', 55555)
+    server = await asyncio.start_server(init_player, "127.0.0.1", 55555)
 
     addr = server.sockets[0].getsockname()
     print(f'Serving on {addr}')

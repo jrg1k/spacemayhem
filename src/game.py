@@ -2,7 +2,6 @@ import pygame
 from pygame import Surface
 from pygame import Vector2
 from pygame.sprite import Sprite
-from pygame.sprite import Group
 
 
 class SpaceShip:
@@ -23,7 +22,6 @@ class SpaceShip:
             self.velocity.scale_to_length(6)
         self.pos += (self.velocity * diff)
 
-
     def control(self, diff):
         if self.ctrl["left"]:
             self.direction = self.direction.rotate(-5 * diff)
@@ -31,8 +29,7 @@ class SpaceShip:
             self.direction = self.direction.rotate(5 * diff)
         if self.ctrl["forward"]:
             self.velocity += self.direction * diff * 0.2
-        for c in self.ctrl:
-            c = 0
+        self.ctrl = self.ctrl.fromkeys(self.ctrl, 0)
 
 
 class LocalSpaceShip(Sprite):
@@ -52,7 +49,7 @@ class LocalSpaceShip(Sprite):
         self.rect.center = self.pos
 
 
-class Player(LocalSpaceShip):
+class LocalPlayerShip(LocalSpaceShip):
     """ player spaceship """
     def __init__(self):
         image = pygame.image.load("player.png")
@@ -60,30 +57,10 @@ class Player(LocalSpaceShip):
         super().__init__(image)
 
 
-class MayhemGame:
-    """ The game """
-    def __init__(self, SCREENW, SCREENH, FNAME_BG):
-        screenwh = (SCREENW, SCREENH)
-        self.screen = pygame.display.set_mode(screenwh)
-        if FNAME_BG is None:
-            self.background = Surface((SCREENW, SCREENH))
-            self.background.fill((0, 0, 0))
-        else:
-            self.background = pygame.image.load(FNAME_BG)
-            self.background = pygame.transform.scale(self.background, screenwh)
-        self.player = Player()
-        self.ships = Group()
-        self.ships.add(self.player)
-        self.control = {"left": 0, "right": 0, "forward": 0}
-
-    def update(self, data):
-        self.ships.update(data)
-        key = pygame.key.get_pressed()
-        self.control["left"] = key[pygame.K_LEFT]
-        self.control["right"] = key[pygame.K_RIGHT]
-        self.control["forward"] = key[pygame.K_UP]
-        return self.control
-
-    def draw(self):
-        self.screen.blit(self.background, (0, 0))
-        self.ships.draw(self.screen)
+class LocalEnemyShip(LocalSpaceShip):
+    """ player spaceship """
+    def __init__(self, playerid):
+        self.id = playerid
+        image = pygame.image.load("enemy.png")
+        image = pygame.transform.scale(image, (20, 20))
+        super().__init__(image)
