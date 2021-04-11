@@ -4,22 +4,22 @@ import asyncio
 import json
 import time
 import config
-from game import SpaceShip
+from game import RemoteSpaceShip
 
 
 class Player:
     def __init__(self, reader, writer):
         self.reader = reader
         self.writer = writer
-        self.ship = SpaceShip((50, 50), (0, 0), (0, 0))
+        self.ship = RemoteSpaceShip((100, 100), (0, -1), (0, 0))
         self.id = self.__hash__()
+        self.projectiles = []
+        self.connected = True
 
     def data(self):
-        data = {
-            "pos": (self.ship.pos.x, self.ship.pos.y),
-            "dir": (self.ship.direction.x, self.ship.direction.y),
-            "velocity": (self.ship.velocity.x, self.ship.velocity.y)
-        }
+        data = ((self.ship.pos.x, self.ship.pos.y),
+                (self.ship.dirvec.x, self.ship.dirvec.y),
+                (self.ship.velocity.x, self.ship.velocity.y))
         return data
 
     async def send(self, msg):
@@ -51,12 +51,13 @@ class GameServer:
             print("server stopped")
 
     async def server_routine(self):
-        server = await asyncio.start_server(self.handle_player, config.ADDRESS,
-                                            config.PORT)
-        addr = server.sockets[0].getsockname()
+        game_server = await asyncio.start_server(self.handle_player,
+                                                 config.ADDRESS, config.PORT)
+        addr = game_server.sockets[0].getsockname()
         print(f'Serving on {addr}')
-        async with server:
-            await asyncio.gather(server.serve_forever(), self.game_update())
+        async with game_server:
+            await asyncio.gather(game_server.serve_forever(),
+                                 self.game_update())
 
     async def game_update(self):
         while True:
@@ -72,8 +73,7 @@ class GameServer:
 
     async def handle_player(self, reader, writer):
         player = Player(reader, writer)
-        init_msg = {}
-        init_msg[player.id] = player.data()
+        init_msg = {player.id: player.data()}
         await player.send(init_msg)
         self.players.append(player)
         print("player connected")
@@ -81,13 +81,17 @@ class GameServer:
             await asyncio.create_task(player.recv())
         except ConnectionResetError as e:
             print(e)
-        self.players.remove(player)
+        player.connected = False
         print("player disconnected")
         writer.close()
 
     def gamedata(self):
         msg = {}
         for p in self.players:
+            if p.connected is False:
+                msg[p.id] = p.id
+                self.players.remove(p)
+                continue
             msg[p.id] = p.data()
         return msg
 
