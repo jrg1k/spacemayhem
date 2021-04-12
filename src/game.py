@@ -13,8 +13,8 @@ class SpaceShip:
         else:
             self.dirvec.normalize_ip()
         self.velocity = Vector2(velocity)
-        self.health = 100
-        self.fuel = 100
+        self.health = 100 #TODO: IMPLEMENT HEALTH STUFF
+        self.fuel = 100 #TODO: IMPLEMENT FUEL STUFF
         self.action = config.ACTION_NONE
 
     def move(self, diff=0.0):
@@ -31,6 +31,7 @@ class RemoteSpaceShip(SpaceShip):
         self.lasers = []
 
     def update(self, diff=0.0):
+        #TODO: IF LASERS OUT OF SCREEN REMOVE THEM
         if not self.withingame():
             self.pos = Vector2(100, 100)
             self.dirvec = Vector2(0, -1)

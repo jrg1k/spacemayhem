@@ -39,6 +39,7 @@ class MayhemGame:
 
     def update(self):
         diff = (time.time() - self.updatetime) / config.UPDATE_RATE
+        ##TODO: REMOVE LASER WHEN OUT OF SCREEN
         self.projectiles.update(diff)
         if self.latestupdate is None:
             self.ships.update(None, None, diff)

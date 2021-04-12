@@ -12,7 +12,6 @@ class Player:
         self.reader = reader
         self.writer = writer
         self.ship = RemoteSpaceShip((100, 100), (0, -1), (0, 0))
-        self.projectiles = []
         self.id = self.__hash__()
         self.connected = True
         self.updatetime = 0.0
@@ -30,10 +29,8 @@ class Player:
         self.ship.update(diff)
         self.updatetime = time.time()
         for p in self.ship.lasers:
-            self.projectiles.append(p)
-        for p in self.ship.lasers:
             if p.withingame is not True:
-                self.projectiles.remove(p)
+                self.sh.remove(p)
 
     async def send(self, msg):
         if self.writer.is_closing():
