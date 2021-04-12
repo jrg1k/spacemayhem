@@ -30,7 +30,7 @@ class Player:
         self.updatetime = time.time()
         for p in self.ship.lasers:
             if p.withingame is not True:
-                self.sh.remove(p)
+                self.ship.lasers.remove(p)
 
     async def send(self, msg):
         if self.writer.is_closing():

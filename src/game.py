@@ -80,7 +80,6 @@ class LocalSpaceShip(Sprite, SpaceShip):
         if data is None:
             self.move(diff)
         else:
-            print(data)
             self.pos = Vector2(data[0][0])
             self.dirvec = Vector2(data[0][1])
             self.velocity = Vector2(data[0][2])
