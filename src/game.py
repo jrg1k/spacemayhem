@@ -44,6 +44,11 @@ class RemoteSpaceShip(SpaceShip):
             self.velocity += self.dirvec * diff * 0.2
         self.ctrl = config.PCTRL_NONE
 
+    def withingame(self):
+        if 0 < self.pos.x < config.SCREENW:
+            if 0 < self.pos.y < config.SCREENH:
+                return True
+        return False
 
 
 class LocalSpaceShip(Sprite, SpaceShip):
@@ -89,8 +94,8 @@ class LocalEnemyShip(LocalSpaceShip):
 
 class Projectile:
     def __init__(self, pos, velocity):
-        self.pos = pos
-        self.velocity = velocity
+        self.pos = Vector2(pos)
+        self.velocity = Vector2(velocity)
 
     def move(self, diff=0.0):
         length = int(self.velocity.length_squared())
@@ -107,6 +112,9 @@ class RemoteProjectile(Projectile):
     def update(self, diff=0.0):
         self.move(diff)
 
+    # def withingame(self):
+    #     if 0 < self.pos[0] < config.SCREENW and 0 < self.pos[1] < config.SCREENH:
+    #         return True
 
 
 class LocalProjectile(Sprite, Projectile):
