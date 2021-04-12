@@ -13,14 +13,15 @@ class Player:
         self.writer = writer
         self.ship = RemoteSpaceShip((100, 100), (0, -1), (0, 0))
         self.id = self.__hash__()
-        self.projectiles = []
         self.connected = True
         self.updatetime = 0.0
 
     def data(self):
-        data = ((self.ship.pos.x, self.ship.pos.y),
-                (self.ship.dirvec.x, self.ship.dirvec.y),
-                (self.ship.velocity.x, self.ship.velocity.y))
+        data = (((self.ship.pos.x, self.ship.pos.y),
+                 (self.ship.dirvec.x, self.ship.dirvec.y),
+                 (self.ship.velocity.x, self.ship.velocity.y)),
+                self.ship.action)
+        self.ship.action = config.ACTION_NONE
         return data
 
     def update(self):

@@ -39,12 +39,13 @@ class MayhemGame:
 
     def update(self):
         diff = (time.time() - self.updatetime) / config.UPDATE_RATE
+        self.projectiles.update(diff)
         if self.latestupdate is None:
-            self.ships.update(None, diff)
+            self.ships.update(None, None, diff)
         else:
             for k, v in self.latestupdate.items():
                 if k == self.id:
-                    self.ship.update(v, diff)
+                    self.ship.update(self.projectiles, v, diff)
                     continue
 
                 if int(k) == v:
@@ -60,7 +61,7 @@ class MayhemGame:
                     self.ships.add(newenemy)
                     continue
                 else:
-                    enemy.update(v)
+                    enemy.update(self.projectiles, v, diff)
             self.latestupdate = None
 
         key = pygame.key.get_pressed()
@@ -77,6 +78,7 @@ class MayhemGame:
     def draw(self):
         self.screen.blit(self.background, (0, 0))
         self.ships.draw(self.screen)
+        self.projectiles.draw(self.screen)
 
     async def send(self):
         msg = self.control
