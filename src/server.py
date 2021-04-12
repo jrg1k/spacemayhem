@@ -15,12 +15,18 @@ class Player:
         self.id = self.__hash__()
         self.projectiles = []
         self.connected = True
+        self.updatetime = 0.0
 
     def data(self):
         data = ((self.ship.pos.x, self.ship.pos.y),
                 (self.ship.dirvec.x, self.ship.dirvec.y),
                 (self.ship.velocity.x, self.ship.velocity.y))
         return data
+
+    def update(self):
+        diff = (time.time() - self.updatetime) / config.UPDATE_RATE
+        self.ship.update(diff)
+        self.updatetime = time.time()
 
     async def send(self, msg):
         if self.writer.is_closing():
@@ -62,14 +68,13 @@ class GameServer:
     async def game_update(self):
         while True:
             t = time.time()
-            diff = 1.0  # must fix
             for p in self.players:
-                p.ship.update(diff)
+                p.update()
             data = self.gamedata()
             for p in self.players:
                 await p.send(data)
             t = time.time() - t
-            await asyncio.sleep(0.02 - t)
+            await asyncio.sleep(config.UPDATE_RATE - t)
 
     async def handle_player(self, reader, writer):
         player = Player(reader, writer)
@@ -79,10 +84,9 @@ class GameServer:
         print("player connected")
         try:
             await asyncio.create_task(player.recv())
-        except ConnectionResetError as e:
-            print(e)
+        except ConnectionResetError:
+            print("player disconnected")
         player.connected = False
-        print("player disconnected")
         writer.close()
 
     def gamedata(self):

@@ -1,8 +1,7 @@
 import pygame
+import config
 from pygame import Vector2
 from pygame.sprite import Sprite
-
-import config
 
 
 class SpaceShip:
@@ -28,6 +27,11 @@ class RemoteSpaceShip(SpaceShip):
         self.ctrl = config.PCTRL_NONE
 
     def update(self, diff=0.0):
+        if not self.withingame():
+            self.pos = Vector2(100, 100)
+            self.dirvec = Vector2(0, -1)
+            self.velocity = Vector2(0, 0)
+            return
         self.control(diff)
         self.move(diff)
 
@@ -41,6 +45,7 @@ class RemoteSpaceShip(SpaceShip):
         self.ctrl = config.PCTRL_NONE
 
 
+
 class LocalSpaceShip(Sprite, SpaceShip):
     """ its a spaceship """
 
@@ -52,10 +57,12 @@ class LocalSpaceShip(Sprite, SpaceShip):
         self.id = playerid
 
     def update(self, data, diff=0.0):
-        self.move(diff)
-        self.pos = Vector2(data[0])
-        self.dirvec = Vector2(data[1])
-        self.velocity = Vector2(data[2])
+        if data is None:
+            self.move(diff)
+        else:
+            self.pos = Vector2(data[0])
+            self.dirvec = Vector2(data[1])
+            self.velocity = Vector2(data[2])
         angle = self.dirvec.angle_to(Vector2(1, 0))
         self.image = pygame.transform.rotate(self.orig_image, angle)
         self.rect = self.image.get_rect()
@@ -101,6 +108,7 @@ class RemoteProjectile(Projectile):
         self.move(diff)
 
 
+
 class LocalProjectile(Sprite, Projectile):
     """ It's a projectile"""
 
@@ -133,6 +141,7 @@ class RemoteLandingPlatform(LandingPlatform):
 
 class LocalLandingPlatform(Sprite, LandingPlatform):
     """ A place to land for refuelling """
+
     def __init__(self, pos):
         Sprite.__init__()
         LandingPlatform.__init__(pos)

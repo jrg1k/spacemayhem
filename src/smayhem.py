@@ -39,25 +39,29 @@ class MayhemGame:
 
     def update(self):
         diff = (time.time() - self.updatetime) / config.UPDATE_RATE
-        for k, v in self.latestupdate.items():
-            if k == self.id:
-                self.ship.update(v, diff)
-                continue
+        if self.latestupdate is None:
+            self.ships.update(None, diff)
+        else:
+            for k, v in self.latestupdate.items():
+                if k == self.id:
+                    self.ship.update(v, diff)
+                    continue
 
-            if int(k) == v:
-                self.enemies.pop(k)
-                for s in self.ships:
-                    if s.id == k:
-                        self.ships.remove(s)
-                continue
-            enemy = self.enemies.get(k)
-            if enemy is None:
-                newenemy = LocalEnemyShip(k, v)
-                self.enemies[newenemy.id] = newenemy
-                self.ships.add(newenemy)
-                continue
-            else:
-                enemy.update(v)
+                if int(k) == v:
+                    self.enemies.pop(k)
+                    for s in self.ships:
+                        if s.id == k:
+                            self.ships.remove(s)
+                    continue
+                enemy = self.enemies.get(k)
+                if enemy is None:
+                    newenemy = LocalEnemyShip(k, v)
+                    self.enemies[newenemy.id] = newenemy
+                    self.ships.add(newenemy)
+                    continue
+                else:
+                    enemy.update(v)
+            self.latestupdate = None
 
         key = pygame.key.get_pressed()
         if key[pygame.K_LEFT]:
@@ -109,7 +113,7 @@ async def game(client):
         client.control = config.PCTRL_NONE
         pygame.display.update()
         t = time.time() - t
-        await asyncio.sleep(config.UPDATE_RATE - t)
+        await asyncio.sleep(config.FRAME_UPDATE_RATE - t)
 
 
 async def main():
