@@ -121,20 +121,21 @@ class Projectile:
 
 
 class RemoteProjectile(Projectile):
-    def __init__(self, pos, velocity, playerid):
-        super.__init__(pos, velocity)
-        self.id = playerid
+    def __init__(self, pos, velocity):
+        super().__init__(pos, velocity)
 
     def update(self, diff=0.0):
         self.move(diff)
 
-    # def withingame(self):
-    #     if 0 < self.pos[0] < config.SCREENW and 0 < self.pos[1] < config.SCREENH:
-    #         return True
+    def withingame(self):
+        if 0 < self.pos.x < config.SCREENW:
+            if 0 < self.pos.y < config.SCREENH:
+                return True
+        return False
 
 
 class LocalProjectile(Sprite, Projectile):
-    """ It's a projectile"""
+    """ It's a projectile """
 
     def __init__(self, pos, velocity):
         Projectile.__init__(self, pos, velocity)
