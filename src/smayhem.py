@@ -33,6 +33,7 @@ class MayhemGame:
         self.ships = Group()
         self.ships.add(self.ship)
         self.projectiles = Group()
+        # self.barrels = Group()
         self.enemies = {}
         self.control = config.PCTRL_NONE
         self.updatetime = 0.0
@@ -80,6 +81,7 @@ class MayhemGame:
         self.screen.blit(self.background, (0, 0))
         self.ships.draw(self.screen)
         self.projectiles.draw(self.screen)
+        # self.barrels.draw(self.screen)
 
     async def send(self):
         msg = self.control
