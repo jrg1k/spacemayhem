@@ -8,6 +8,7 @@ class SpaceShip:
     def __init__(self, posvec, dirvec, velocity):
         self.pos = Vector2(posvec)
         self.dirvec = Vector2(dirvec)
+        self.radius = 20
         if self.dirvec.length_squared() == 0:
             self.dirvec = Vector2(0, -1)
         else:
@@ -50,7 +51,7 @@ class RemoteSpaceShip(SpaceShip):
             self.velocity += self.dirvec * diff * 0.2
         if self.ctrl & config.PCTRL_FIRE:
             self.action = self.action | config.ACTION_FIRE
-            laserpos = self.pos + self.dirvec * 2
+            laserpos = self.pos + self.dirvec * 4
             self.lasers.append(RemoteProjectile(laserpos, self.dirvec.xy))
 
         self.ctrl = config.PCTRL_NONE
@@ -75,6 +76,14 @@ class LocalSpaceShip(Sprite, SpaceShip):
     def fire(self):
         projectile_pos = self.pos.xy + self.dirvec.xy * 2
         return LocalProjectile(projectile_pos, self.dirvec.xy)
+
+    def refuel(self, barrel):
+        # self.rect = orig_image.get_rect()
+        #TODO: if self, barrel intersect:
+        #      barrel.fuel -= 1
+        #      self.fuel += 1
+        pass
+
 
     def update(self, projectiles, data, diff=0.0):
         if data is None:
@@ -140,7 +149,7 @@ class LocalProjectile(Sprite, Projectile):
     def __init__(self, pos, velocity):
         Projectile.__init__(self, pos, velocity)
         Sprite.__init__(self)
-        self.orig_image = pygame.image.load("pewpew.png")
+        self.orig_image = pygame.image.load("pewpewpew.png")
         self.update()  # pos, velocity
 
     def update(self, diff=0.0):
@@ -150,29 +159,24 @@ class LocalProjectile(Sprite, Projectile):
         self.rect = self.image.get_rect()
         self.rect.center = self.pos
 
-
-class LandingPlatform:
-    def __init__(self, pos):
-        self.pos = pos
-
-
-class RemoteLandingPlatform(LandingPlatform):
-    def __init__(self, pos, fueldepot=200):
-        super().__init__(pos)
-        self.fueldepot = fueldepot
+    def collision(self, enemyspaceship):
+        #TODO: collision logic
+        pass
 
 
-class LocalLandingPlatform(Sprite, LandingPlatform):
-    """ A place to land for refuelling """
-
-    def __init__(self, pos):
-        Sprite.__init__(self)
-        LandingPlatform.__init__(self, pos)
-        self.image = pygame.image.load("platform.png")
-        self.rect = self.image.get_rect()
-        self.rect.center = self.pos
 
 # Idea: have fuel barrels you can fly into in order to refuel..?
-# class Fuel:
-#     def __init__(self):
-#         self.fuelamount = 100
+class FuelBarrel:
+    def __init__(self, pos):
+        self.pos = Vector2()
+        self.fuel = 200
+
+class RemoteBarrel(FuelBarrel):
+    def __init__(self, pos):
+        super().__init__(self, pos)
+
+class LocalBarrel(FuelBarrel):
+    def __init__(self, pos):
+        super().__init__(self, pos)
+        self.image = pygame.image.load("barrel.png")
+        self.rect = self.image.get_rect()
