@@ -1,42 +1,55 @@
 import pygame
 import config
+import time
 from pygame import Vector2
 from pygame.sprite import Sprite
 
 
-class SpaceShip:
-    def __init__(self, posvec, dirvec, velocity):
-        self.pos = Vector2(posvec)
-        self.dirvec = Vector2(dirvec)
-        self.radius = 20
-        if self.dirvec.length_squared() == 0:
-            self.dirvec = Vector2(0, -1)
-        else:
-            self.dirvec.normalize_ip()
+class GameObject:
+    """ General game object """
+
+    def __init__(self, pos=(float, float)):
+        self.pos = Vector2(pos)
+
+
+class GameMovingObject(GameObject):
+    def __init__(self, pos, velocity=(float, float)):
+        super().__init__(pos)
         self.velocity = Vector2(velocity)
-        self.health = 100 #TODO: IMPLEMENT HEALTH STUFF
-        self.fuel = 100 #TODO: IMPLEMENT FUEL STUFF
-        self.action = config.ACTION_NONE
+
+
+class SpaceShip(GameMovingObject):
+    """ The spaceships flying around in space. """
+
+    def __init__(self, pos, velocity, direction=(float, float)):
+        super().__init__(pos, velocity)
+        self.dirvec = Vector2(direction)
+        self.dirvec.normalize_ip()
+        self.lives = config.PLAYER_LIVES  # TODO: IMPLEMENT HEALTH STUFF
+        self.fuel = config.PLAYER_FUEL  # TODO: IMPLEMENT FUEL STUFF
+        self.action = 0
 
     def move(self, diff=0.0):
         length = int(self.velocity.length_squared())
-        if length > 36:  # 6^2 = 36
-            self.velocity.scale_to_length(6)
+        if length > config.SHIP_SPEED_SQARED:
+            self.velocity.scale_to_length(config.SHIP_SPEED)
         self.pos += (self.velocity * diff)
 
 
 class RemoteSpaceShip(SpaceShip):
-    def __init__(self, pos, direction, velocity):
-        super().__init__(pos, direction, velocity)
-        self.ctrl = config.PCTRL_NONE
+    """ Server handling of spaceship """
+
+    def __init__(self, pos, velocity, direction):
+        super().__init__(pos, velocity, direction)
+        self.ctrl = 0
         self.lasers = []
+        self.firetime = time.time()
+        self.radius = 10
 
     def update(self, diff=0.0):
-        #TODO: IF LASERS OUT OF SCREEN REMOVE THEM
+        # TODO: IF LASERS OUT OF SCREEN REMOVE THEM
         if not self.withingame():
-            self.pos = Vector2(100, 100)
-            self.dirvec = Vector2(0, -1)
-            self.velocity = Vector2(0, 0)
+            self.respawn()
             return
         self.control(diff)
         self.move(diff)
@@ -49,12 +62,13 @@ class RemoteSpaceShip(SpaceShip):
         if self.ctrl & config.PCTRL_THRUST:
             self.fuel -= 1
             self.velocity += self.dirvec * diff * 0.2
-        if self.ctrl & config.PCTRL_FIRE:
-            self.action = self.action | config.ACTION_FIRE
-            laserpos = self.pos + self.dirvec * 4
-            self.lasers.append(RemoteProjectile(laserpos, self.dirvec.xy))
-
-        self.ctrl = config.PCTRL_NONE
+        if self.cooldowndiff() >= config.SHIP_FIRERATE:
+            if self.ctrl & config.PCTRL_FIRE:
+                self.action = self.action | config.ACTION_FIRE
+                laserpos = self.pos + self.dirvec * 4
+                self.lasers.append(RemoteProjectile(laserpos, self.dirvec.xy))
+                self.firetime = time.time()
+        self.ctrl = 0
 
     def withingame(self):
         if 0 < self.pos.x < config.SCREENW:
@@ -62,15 +76,45 @@ class RemoteSpaceShip(SpaceShip):
                 return True
         return False
 
+    def cooldowndiff(self):
+        return time.time() - self.firetime
 
-class LocalSpaceShip(Sprite, SpaceShip):
-    """ its a spaceship """
+    def get_data(self):
+        data = (((self.pos.x, self.pos.y), (self.velocity.x, self.velocity.y),
+                (self.dirvec.x, self.dirvec.y)), self.action)
+        self.action = 0
+        return data
 
-    def __init__(self, image, pos, dirvec, velocity, playerid):
+    def collision(self, other, projectiles, barrels):
+        for b in barrels:
+            if int(self.pos.distance_squared_to(b)) < config.SHIP_SIZE_SQUARED:
+                self.refuel(b)
+                #TODO: barrel.remove()
+
+        for p in projectiles:
+            dist = int(self.pos.distance_squared_to(p))
+            if dist < config.SHIP_SIZE_SQUARED:
+                self.respawn()
+
+    def respawn(self):
+        self.pos = Vector2(100, 100)
+        self.dirvec = Vector2(0, -1)
+        self.velocity = Vector2(0, 0)
+
+    def refuel(self, barrel):
+        self.fuel += barrel.fuel
+
+
+class LocalSpaceShip(SpaceShip, Sprite):
+    """ Local handling of spaceships, drawing etc. """
+
+    def __init__(self, init_data, image, playerid=int):
+        print(init_data)
+        SpaceShip.__init__(self, init_data[0][0], init_data[0][1],
+                           init_data[0][2])
         Sprite.__init__(self)
-        SpaceShip.__init__(self, pos, dirvec, velocity)
         self.orig_image = image
-        self.update(None, None)  # pos, dirvec, velocity
+        self.set_image()
         self.id = playerid
 
     def fire(self):
@@ -79,44 +123,49 @@ class LocalSpaceShip(Sprite, SpaceShip):
 
     def refuel(self, barrel):
         # self.rect = orig_image.get_rect()
-        #TODO: if self, barrel intersect:
+        # TODO: if self, barrel intersect:
         #      barrel.fuel -= 1
         #      self.fuel += 1
         pass
 
-
     def update(self, projectiles, data, diff=0.0):
-        if data is None:
-            self.move(diff)
-        else:
+        if data:
             self.pos = Vector2(data[0][0])
-            self.dirvec = Vector2(data[0][1])
-            self.velocity = Vector2(data[0][2])
+            self.velocity = Vector2(data[0][1])
+            self.dirvec = Vector2(data[0][2])
             if data[1] & config.ACTION_FIRE:
                 projectiles.add(self.fire())
+        self.move(diff)
+        self.set_image()
 
+    def set_image(self):
         angle = self.dirvec.angle_to(Vector2(1, 0))
         self.image = pygame.transform.rotate(self.orig_image, angle)
         self.rect = self.image.get_rect()
         self.rect.center = self.pos
 
+    def collision(self, projectiles):
+        pygame.sprite.spritecollide(self, projectiles, True)
+
 
 class LocalPlayerShip(LocalSpaceShip):
     """ player spaceship """
 
-    def __init__(self, playerid, data):
-        image = pygame.image.load("player.png")
-        image = pygame.transform.scale(image, (20, 20))
-        super().__init__(image, data[0][0], data[0][1], data[0][2], playerid)
+    def __init__(self, init_data, playerid):
+        image = pygame.image.load("images/player.png")
+        image = pygame.transform.scale(image, (
+            config.SHIP_SIZE, config.SHIP_SIZE)).convert_alpha()
+        super().__init__(init_data, image, playerid)
 
 
 class LocalEnemyShip(LocalSpaceShip):
-    """ player spaceship """
+    """ enemy player representation spaceship """
 
-    def __init__(self, playerid, data):
-        image = pygame.image.load("enemy.png")
-        image = pygame.transform.scale(image, (20, 20))
-        super().__init__(image, data[0][0], data[0][1], data[0][2], playerid)
+    def __init__(self, init_data, playerid):
+        image = pygame.image.load("images/enemy.png")
+        image = pygame.transform.scale(image, (
+            config.SHIP_SIZE, config.SHIP_SIZE)).convert_alpha()
+        super().__init__(init_data, image, playerid)
 
 
 class Projectile:
@@ -160,23 +209,23 @@ class LocalProjectile(Sprite, Projectile):
         self.rect.center = self.pos
 
     def collision(self, enemyspaceship):
-        #TODO: collision logic
+        # TODO: collision logic
         pass
 
 
-
-# Idea: have fuel barrels you can fly into in order to refuel..?
-class FuelBarrel:
+class FuelBarrel(GameObject):
     def __init__(self, pos):
-        self.pos = Vector2()
+        super().__init__(pos)
         self.fuel = 200
+
 
 class RemoteBarrel(FuelBarrel):
     def __init__(self, pos):
-        super().__init__(self, pos)
+        super().__init__(pos)
+
 
 class LocalBarrel(FuelBarrel):
     def __init__(self, pos):
-        super().__init__(self, pos)
-        self.image = pygame.image.load("barrel.png")
+        super().__init__(pos)
+        self.image = pygame.image.load("barrel.png").convert_alpha()
         self.rect = self.image.get_rect()

@@ -28,7 +28,7 @@ class MayhemGame:
         self.writer = writer
         for k, v in init_data.items():
             self.id = k
-            self.ship = LocalPlayerShip(self.id, v)
+            self.ship = LocalPlayerShip(v, self.id)
         self.latestupdate = init_data
         self.ships = Group()
         self.ships.add(self.ship)
@@ -58,7 +58,7 @@ class MayhemGame:
                     continue
                 enemy = self.enemies.get(k)
                 if enemy is None:
-                    newenemy = LocalEnemyShip(k, v)
+                    newenemy = LocalEnemyShip(v, k)
                     self.enemies[newenemy.id] = newenemy
                     self.ships.add(newenemy)
                     continue
@@ -79,8 +79,8 @@ class MayhemGame:
 
     def draw(self):
         self.screen.blit(self.background, (0, 0))
-        self.ships.draw(self.screen)
         self.projectiles.draw(self.screen)
+        self.ships.draw(self.screen)
         # self.barrels.draw(self.screen)
 
     async def send(self):
@@ -115,7 +115,7 @@ async def game(client):
         client.draw()
         client.update()
         await client.send()
-        client.control = config.PCTRL_NONE
+        client.control = 0
         pygame.display.update()
         t = time.time() - t
         await asyncio.sleep(config.FRAME_UPDATE_RATE - t)

@@ -11,30 +11,15 @@ class Player:
     def __init__(self, reader, writer):
         self.reader = reader
         self.writer = writer
-        self.ship = RemoteSpaceShip((100, 100), (0, -1), (0, 0))
+        self.ship = RemoteSpaceShip((100, 100), (0, 0), (0, -1))
         self.id = self.__hash__()
         self.connected = True
         self.updatetime = 0.0
-
-    def data(self):
-        data = (((self.ship.pos.x, self.ship.pos.y),
-                 (self.ship.dirvec.x, self.ship.dirvec.y),
-                 (self.ship.velocity.x, self.ship.velocity.y)),
-                self.ship.action)
-        self.ship.action = config.ACTION_NONE
-        return data
 
     def update(self):
         diff = (time.time() - self.updatetime) / config.UPDATE_RATE
         self.ship.update(diff)
         self.updatetime = time.time()
-        #FIX:
-        # for p in self.ship.lasers:
-        #     if p.withingame() is not True:
-        #         self.ship.lasers.remove(p)
-        # for p in self.ship.lasers:
-        #     print(p.pos.xy)
-        ## DOESNT SEEM TO WORK
 
     async def send(self, msg):
         if self.writer.is_closing():
@@ -86,7 +71,7 @@ class GameServer:
 
     async def handle_player(self, reader, writer):
         player = Player(reader, writer)
-        init_msg = {player.id: player.data()}
+        init_msg = {player.id: player.ship.get_data()}
         await player.send(init_msg)
         self.players.append(player)
         print("player connected")
@@ -104,7 +89,7 @@ class GameServer:
                 msg[p.id] = p.id
                 self.players.remove(p)
                 continue
-            msg[p.id] = p.data()
+            msg[p.id] = p.ship.get_data()
         return msg
 
 
