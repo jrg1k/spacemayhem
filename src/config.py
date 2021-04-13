@@ -21,9 +21,11 @@ PCTRL_LEFT = 1
 PCTRL_RIGHT = 2
 PCTRL_THRUST = 4
 PCTRL_FIRE = 8
+FIRE_COOLDOWN = 16
+# 01000 AND 10000 for timetrack 1 sec to reduce fire rate?
+
 
 # Player actions
 ACTION_NONE = 0
 ACTION_FIRE = 1
 ACTON_DC = 2
-
