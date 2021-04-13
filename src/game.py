@@ -44,7 +44,6 @@ class RemoteSpaceShip(SpaceShip):
         self.ctrl = 0
         self.lasers = []
         self.firetime = time.time()
-        self.radius = 10
 
     def update(self, diff=0.0):
         # TODO: IF LASERS OUT OF SCREEN REMOVE THEM
@@ -53,6 +52,10 @@ class RemoteSpaceShip(SpaceShip):
             return
         self.control(diff)
         self.move(diff)
+        for pew in self.lasers:
+            pew.update(diff)
+            if not pew.withingame():
+                self.lasers.remove(pew)
 
     def control(self, diff):
         if self.ctrl & config.PCTRL_LEFT:
@@ -86,13 +89,14 @@ class RemoteSpaceShip(SpaceShip):
         return data
 
     def collision(self, other, projectiles, barrels):
-        for b in barrels:
-            if int(self.pos.distance_squared_to(b)) < config.SHIP_SIZE_SQUARED:
-                self.refuel(b)
-                #TODO: barrel.remove()
+        if barrels is not None:
+            for b in barrels:
+                if int(self.pos.distance_squared_to(b)) < config.SHIP_SIZE_SQUARED:
+                    self.refuel(b)
+                    #TODO: barrel.remove()
 
         for p in projectiles:
-            dist = int(self.pos.distance_squared_to(p))
+            dist = int(self.pos.distance_squared_to(p.pos))
             if dist < config.SHIP_SIZE_SQUARED:
                 self.respawn()
 

@@ -20,11 +20,17 @@ class Player:
         self.connected = True
         self.updatetime = 0.0
 
-    def update(self):
+    def update(self, players):
         """
         Updates the remote game data
         """
         diff = (time.time() - self.updatetime) / config.UPDATE_RATE
+        projectiles = []
+        for p in players:
+            if p is not self:
+                projectiles.extend(p.ship.lasers)
+
+        self.ship.collision(None, projectiles, None)
         self.ship.update(diff)
         self.updatetime = time.time()
 
@@ -78,7 +84,7 @@ class GameServer:
         while True:
             t = time.time()
             for p in self.players:
-                p.update()
+                p.update(self.players)
             data = self.gamedata()
             for p in self.players:
                 await p.send(data)
