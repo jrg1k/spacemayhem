@@ -28,9 +28,13 @@ class Player:
         diff = (time.time() - self.updatetime) / config.UPDATE_RATE
         self.ship.update(diff)
         self.updatetime = time.time()
-        for p in self.ship.lasers:
-            if p.withingame is not True:
-                self.ship.lasers.remove(p)
+        #FIX:
+        # for p in self.ship.lasers:
+        #     if p.withingame() is not True:
+        #         self.ship.lasers.remove(p)
+        # for p in self.ship.lasers:
+        #     print(p.pos.xy)
+        ## DOESNT SEEM TO WORK
 
     async def send(self, msg):
         if self.writer.is_closing():
