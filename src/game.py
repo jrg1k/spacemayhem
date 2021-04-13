@@ -168,10 +168,9 @@ class LocalEnemyShip(LocalSpaceShip):
         super().__init__(init_data, image, playerid)
 
 
-class Projectile:
+class Projectile(GameMovingObject):
     def __init__(self, pos, velocity):
-        self.pos = Vector2(pos)
-        self.velocity = Vector2(velocity)
+        super().__init__(pos, velocity)
         self.velocity.scale_to_length(10)
 
     def move(self, diff=0.0):
@@ -196,9 +195,10 @@ class LocalProjectile(Sprite, Projectile):
     """ It's a projectile """
 
     def __init__(self, pos, velocity):
-        Projectile.__init__(self, pos, velocity)
         Sprite.__init__(self)
-        self.orig_image = pygame.image.load("pewpewpew.png")
+        Projectile.__init__(self, pos, velocity)
+
+        self.orig_image = pygame.image.load("images/pewpewpew.png")
         self.update()  # pos, velocity
 
     def update(self, diff=0.0):

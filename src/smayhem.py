@@ -35,12 +35,12 @@ class MayhemGame:
         self.projectiles = Group()
         # self.barrels = Group()
         self.enemies = {}
-        self.control = config.PCTRL_NONE
+        self.control = 0
         self.updatetime = 0.0
 
     def update(self):
         diff = (time.time() - self.updatetime) / config.UPDATE_RATE
-        ##TODO: REMOVE LASER WHEN OUT OF SCREEN
+        # TODO: REMOVE LASER WHEN OUT OF SCREEN
         self.projectiles.update(diff)
         if self.latestupdate is None:
             self.ships.update(None, None, diff)

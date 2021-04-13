@@ -34,3 +34,7 @@ FIRE_COOLDOWN = 16
 # Player actions
 ACTION_FIRE = 1
 ACTON_DC = 2
+
+# Player variables
+PLAYER_LIVES = 5
+PLAYER_FUEL = 1000

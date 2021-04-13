@@ -8,6 +8,10 @@ from game import RemoteSpaceShip
 
 
 class Player:
+    """
+    Player class in the context of server handling
+    """
+
     def __init__(self, reader, writer):
         self.reader = reader
         self.writer = writer
@@ -17,11 +21,17 @@ class Player:
         self.updatetime = 0.0
 
     def update(self):
+        """
+        Updates the remote game data
+        """
         diff = (time.time() - self.updatetime) / config.UPDATE_RATE
         self.ship.update(diff)
         self.updatetime = time.time()
 
     async def send(self, msg):
+        """
+        Send data to the server with asyncio
+        """
         if self.writer.is_closing():
             return
         msg = json.dumps(msg) + "\n"
@@ -29,6 +39,9 @@ class Player:
         await self.writer.drain()
 
     async def recv(self):
+        """
+        Receiving data from the server with asyncio
+        """
         while True:
             data = await self.reader.readline()
             if len(data) == 0 and self.reader.at_eof():
@@ -44,6 +57,9 @@ class GameServer:
         self.players = []
 
     def start(self):
+        """
+        Start server
+        """
         try:
             asyncio.run(self.server_routine())
         except KeyboardInterrupt:
