@@ -1,5 +1,7 @@
 import sys
 
+import pygame.font
+
 if len(sys.argv) < 3:
     print("Usage example: ./run 127.0.0.1 1234")
     exit()
@@ -31,6 +33,11 @@ PCTRL_THRUST = 4
 PCTRL_FIRE = 8
 FIRE_COOLDOWN = 16
 # 01000 AND 10000 for timetrack 1 sec to reduce fire rate?
+
+# Score
+SCORE_FONTNAME = "freesansbold.ttf"
+SCORE_FONTSIZE = 20
+SCORE_POS = (100, 50)
 
 
 # Player actions

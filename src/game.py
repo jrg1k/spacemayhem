@@ -27,6 +27,7 @@ class SpaceShip(GameMovingObject):
         self.dirvec.normalize_ip()
         self.lives = config.PLAYER_LIVES  # TODO: IMPLEMENT HEALTH STUFF
         self.fuel = config.SHIP_FUELTANK  # TODO: IMPLEMENT FUEL STUFF
+        self.score = 0
         self.action = 0
         self.playerid = playerid
 
@@ -114,13 +115,6 @@ class LocalSpaceShip(SpaceShip, Sprite):
     def fire(self):
         projectile_pos = self.pos.xy + self.dirvec.xy * 2
         return LocalProjectile(projectile_pos, self.dirvec.xy, self.playerid)
-
-    def refuel(self, barrel):
-        # self.rect = orig_image.get_rect()
-        # TODO: if self, barrel intersect:
-        #      barrel.fuel -= 1
-        #      self.fuel += 1
-        pass
 
     def update(self, projectiles, data, diff=0.0):
         if data:
@@ -253,3 +247,9 @@ class LocalBarrel(FuelBarrel):
         super().__init__(pos)
         self.image = pygame.image.load("barrel.png").convert_alpha()
         self.rect = self.image.get_rect()
+
+# class LocalPlayerScore(pygame.font.Font):
+#     def __init__(self, playerid, score):
+#         super().__init__()
+#         self.font = config.SCORE_FONT
+#         self.pos = config.SCORE_POS
