@@ -146,7 +146,7 @@ async def main():
         exit()
     init_data = await reader.readline()
     init_data = json.loads(init_data.decode())
-    client = MayhemGame(None, reader, writer, init_data,
+    client = MayhemGame(config.FNAME_BG, reader, writer, init_data,
                         (config.SCREENW, config.SCREENH))
     try:
         await asyncio.gather(client.recv(), game(client))
