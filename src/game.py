@@ -84,7 +84,7 @@ class RemoteSpaceShip(SpaceShip):
 
     def get_data(self):
         data = (((self.pos.x, self.pos.y), (self.velocity.x, self.velocity.y),
-                (self.dirvec.x, self.dirvec.y)), self.action, self.fuel)
+                (self.dirvec.x, self.dirvec.y)), self.action, self.fuel, self.lives)
         self.action = 0
         return data
 
@@ -105,6 +105,7 @@ class RemoteSpaceShip(SpaceShip):
         self.dirvec = Vector2(0, -1)
         self.velocity = Vector2(0, 0)
         self.fuel = config.SHIP_FUELTANK
+        self.lives -= 1
 
     def refuel(self, barrel):
         self.fuel += barrel.fuel
