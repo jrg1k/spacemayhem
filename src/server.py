@@ -15,23 +15,17 @@ class Player:
     def __init__(self, reader, writer):
         self.reader = reader
         self.writer = writer
-        self.ship = RemoteSpaceShip((100, 100), (0, 0), (0, -1))
-        self.id = self.__hash__()
+        self.playerid = self.__hash__()
+        self.ship = RemoteSpaceShip((100, 100), (0, 0), (0, -1), self.playerid)
         self.connected = True
         self.updatetime = 0.0
 
-    def update(self, players):
+    def update(self, ships):
         """
         Updates the remote game data
         """
         diff = (time.time() - self.updatetime) / config.UPDATE_RATE
-        projectiles = []
-        for p in players:
-            if p is not self:
-                projectiles.extend(p.ship.lasers)
-
-        self.ship.collision(None, projectiles, None)
-        self.ship.update(diff)
+        self.ship.update(ships, diff)
         self.updatetime = time.time()
 
     async def send(self, msg):
@@ -61,11 +55,10 @@ class GameServer:
         self.addr = addr
         self.port = port
         self.players = []
+        self.ships = []
 
     def start(self):
-        """
-        Start server
-        """
+        """ Start server """
         try:
             asyncio.run(self.server_routine())
         except KeyboardInterrupt:
@@ -84,7 +77,7 @@ class GameServer:
         while True:
             t = time.time()
             for p in self.players:
-                p.update(self.players)
+                p.update(self.ships)
             data = self.gamedata()
             for p in self.players:
                 await p.send(data)
@@ -93,9 +86,10 @@ class GameServer:
 
     async def handle_player(self, reader, writer):
         player = Player(reader, writer)
-        init_msg = {player.id: player.ship.get_data()}
+        init_msg = {player.playerid: player.ship.get_data()}
         await player.send(init_msg)
         self.players.append(player)
+        self.ships.append(player.ship)
         print("player connected")
         try:
             await asyncio.create_task(player.recv())
@@ -108,10 +102,11 @@ class GameServer:
         msg = {}
         for p in self.players:
             if p.connected is False:
-                msg[p.id] = p.id
+                msg[p.playerid] = p.playerid
+                self.ships.remove(p.ship)
                 self.players.remove(p)
                 continue
-            msg[p.id] = p.ship.get_data()
+            msg[p.playerid] = p.ship.get_data()
         return msg
 
 

@@ -9,7 +9,7 @@ PORT = int(sys.argv[2])
 
 SCREENW = 1600
 SCREENH = 900
-FNAME_BG = None
+FNAME_BG = "images/background.jpg"
 
 # 1 / <updates per second> = <time between each update>
 UPDATE_RATE = 1 / 50
@@ -17,11 +17,12 @@ FRAME_UPDATE_RATE = 1 / 60
 
 # Ship parameters
 SHIP_FUELTANK = 1000
-SHIP_FIRERATE = 1.0
+SHIP_FIRERATE = 0.5
 SHIP_SPEED = 6
 SHIP_SPEED_SQARED = SHIP_SPEED ** 2
 SHIP_SIZE = 20
 SHIP_SIZE_SQUARED = SHIP_SIZE ** 2
+SHIP_LASER_SPEED = 10
 
 # Player control constants
 PCTRL_LEFT = 1

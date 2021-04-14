@@ -21,13 +21,14 @@ class GameMovingObject(GameObject):
 class SpaceShip(GameMovingObject):
     """ The spaceships flying around in space. """
 
-    def __init__(self, pos, velocity, direction=(float, float)):
+    def __init__(self, pos, velocity, direction=(float, float), playerid=int):
         super().__init__(pos, velocity)
         self.dirvec = Vector2(direction)
         self.dirvec.normalize_ip()
         self.lives = config.PLAYER_LIVES  # TODO: IMPLEMENT HEALTH STUFF
         self.fuel = config.SHIP_FUELTANK  # TODO: IMPLEMENT FUEL STUFF
         self.action = 0
+        self.playerid = playerid
 
     def move(self, diff=0.0):
         length = int(self.velocity.length_squared())
@@ -39,23 +40,21 @@ class SpaceShip(GameMovingObject):
 class RemoteSpaceShip(SpaceShip):
     """ Server handling of spaceship """
 
-    def __init__(self, pos, velocity, direction):
-        super().__init__(pos, velocity, direction)
+    def __init__(self, pos, velocity, direction, playerid):
+        super().__init__(pos, velocity, direction, playerid)
         self.ctrl = 0
-        self.lasers = []
+        self.projectiles = []
         self.firetime = time.time()
 
-    def update(self, diff=0.0):
+    def update(self, ships, diff=0.0):
         # TODO: IF LASERS OUT OF SCREEN REMOVE THEM
         if not self.withingame():
             self.respawn()
             return
         self.control(diff)
         self.move(diff)
-        for pew in self.lasers:
-            pew.update(diff)
-            if not pew.withingame():
-                self.lasers.remove(pew)
+        for pew in self.projectiles:
+            pew.update(ships, diff)
 
     def control(self, diff):
         if self.ctrl & config.PCTRL_LEFT:
@@ -65,11 +64,13 @@ class RemoteSpaceShip(SpaceShip):
         if self.ctrl & config.PCTRL_THRUST and self.fuel > 0:
             self.fuel -= 1
             self.velocity += self.dirvec * diff * 0.2
-        if self.cooldowndiff() >= config.SHIP_FIRERATE:
+        if time.time() - self.firetime >= config.SHIP_FIRERATE:
             if self.ctrl & config.PCTRL_FIRE:
                 self.action = self.action | config.ACTION_FIRE
                 laserpos = self.pos + self.dirvec * 4
-                self.lasers.append(RemoteProjectile(laserpos, self.dirvec.xy))
+                self.projectiles.append(
+                    RemoteProjectile(laserpos, self.dirvec.xy, self.playerid,
+                                     self.projectiles))
                 self.firetime = time.time()
         self.ctrl = 0
 
@@ -79,26 +80,12 @@ class RemoteSpaceShip(SpaceShip):
                 return True
         return False
 
-    def cooldowndiff(self):
-        return time.time() - self.firetime
-
     def get_data(self):
         data = (((self.pos.x, self.pos.y), (self.velocity.x, self.velocity.y),
-                (self.dirvec.x, self.dirvec.y)), self.action, self.fuel, self.lives)
+                 (self.dirvec.x, self.dirvec.y)), self.action, self.fuel,
+                self.lives, self.score)
         self.action = 0
         return data
-
-    def collision(self, other, projectiles, barrels):
-        if barrels is not None:
-            for b in barrels:
-                if int(self.pos.distance_squared_to(b)) < config.SHIP_SIZE_SQUARED:
-                    self.refuel(b)
-                    #TODO: barrel.remove()
-
-        for p in projectiles:
-            dist = int(self.pos.distance_squared_to(p.pos))
-            if dist < config.SHIP_SIZE_SQUARED:
-                self.respawn()
 
     def respawn(self):
         self.pos = Vector2(100, 100)
@@ -114,18 +101,19 @@ class RemoteSpaceShip(SpaceShip):
 class LocalSpaceShip(SpaceShip, Sprite):
     """ Local handling of spaceships, drawing etc. """
 
-    def __init__(self, init_data, image, playerid=int):
-        print(init_data)
+    def __init__(self, init_data, image, playerid):
         SpaceShip.__init__(self, init_data[0][0], init_data[0][1],
-                           init_data[0][2])
+                           init_data[0][2], playerid)
         Sprite.__init__(self)
+        self.fuel = init_data[2]
+        self.lives = init_data[3]
+        self.score = init_data[4]
         self.orig_image = image
         self.set_image()
-        self.id = playerid
 
     def fire(self):
         projectile_pos = self.pos.xy + self.dirvec.xy * 2
-        return LocalProjectile(projectile_pos, self.dirvec.xy)
+        return LocalProjectile(projectile_pos, self.dirvec.xy, self.playerid)
 
     def refuel(self, barrel):
         # self.rect = orig_image.get_rect()
@@ -139,6 +127,9 @@ class LocalSpaceShip(SpaceShip, Sprite):
             self.pos = Vector2(data[0][0])
             self.velocity = Vector2(data[0][1])
             self.dirvec = Vector2(data[0][2])
+            self.fuel = data[2]
+            self.lives = data[3]
+            self.score = data[4]
             if data[1] & config.ACTION_FIRE:
                 projectiles.add(self.fire())
         self.move(diff)
@@ -175,20 +166,13 @@ class LocalEnemyShip(LocalSpaceShip):
 
 
 class Projectile(GameMovingObject):
-    def __init__(self, pos, velocity):
+    def __init__(self, pos, velocity, playerid=int):
         super().__init__(pos, velocity)
-        self.velocity.scale_to_length(10)
+        self.velocity.scale_to_length(config.SHIP_LASER_SPEED)
+        self.playerid = playerid
 
     def move(self, diff=0.0):
         self.pos += (self.velocity * diff)
-
-
-class RemoteProjectile(Projectile):
-    def __init__(self, pos, velocity):
-        super().__init__(pos, velocity)
-
-    def update(self, diff=0.0):
-        self.move(diff)
 
     def withingame(self):
         if 0 < self.pos.x < config.SCREENW:
@@ -197,29 +181,64 @@ class RemoteProjectile(Projectile):
         return False
 
 
+class RemoteProjectile(Projectile):
+
+    def __init__(self, pos, velocity, playerid, group):
+        super().__init__(pos, velocity, playerid)
+        self.group = group
+
+    def update(self, ships, diff=0.0):
+        if self.detect_collision(ships):
+            return
+        self.move(diff)
+
+    def detect_collision(self, ships):
+        if not self.withingame():
+            self.group.remove(self)
+            return True
+        hitpoint = self.pos + self.velocity
+        for ship in ships:
+            dist = int(hitpoint.distance_squared_to(ship.pos))
+            if self.playerid != ship.playerid and dist < config.SHIP_SIZE_SQUARED:
+                ship.respawn()
+                self.group.remove(self)
+
+
 class LocalProjectile(Sprite, Projectile):
     """ It's a projectile """
 
-    def __init__(self, pos, velocity):
+    def __init__(self, pos, velocity, playerid):
         Sprite.__init__(self)
-        Projectile.__init__(self, pos, velocity)
-
+        Projectile.__init__(self, pos, velocity, playerid)
         self.orig_image = pygame.image.load("images/pewpewpew.png")
-        self.update()  # pos, velocity
+        self.set_image()
 
-    def update(self, diff=0.0):
+    def update(self, ships, diff=0.0):
+        if self.detect_collision(ships):
+            return
         self.move(diff)
+        self.set_image()
+
+    def detect_collision(self, ships):
+        if not self.withingame():
+            self.kill()
+            return True
+        hits = pygame.sprite.spritecollide(self, ships, False)
+        for hit in hits:
+            if hit.playerid != self.playerid:
+                self.kill()
+                return True
+        return False
+
+    def set_image(self):
         angle = self.velocity.angle_to(Vector2(1, 0))
         self.image = pygame.transform.rotate(self.orig_image, angle)
         self.rect = self.image.get_rect()
         self.rect.center = self.pos
 
-    def collision(self, enemyspaceship):
-        # TODO: collision logic
-        pass
-
 
 class FuelBarrel(GameObject):
+
     def __init__(self, pos):
         super().__init__(pos)
 

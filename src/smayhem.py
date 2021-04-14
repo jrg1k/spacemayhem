@@ -27,8 +27,8 @@ class MayhemGame:
         self.reader = reader
         self.writer = writer
         for k, v in init_data.items():
-            self.id = k
-            self.ship = LocalPlayerShip(v, self.id)
+            self.playerid = k
+            self.ship = LocalPlayerShip(v, self.playerid)
         self.latestupdate = init_data
         self.ships = Group()
         self.ships.add(self.ship)
@@ -41,25 +41,25 @@ class MayhemGame:
     def update(self):
         diff = (time.time() - self.updatetime) / config.UPDATE_RATE
         # TODO: REMOVE LASER WHEN OUT OF SCREEN
-        self.projectiles.update(diff)
+        self.projectiles.update(self.ships, diff)
         if self.latestupdate is None:
             self.ships.update(None, None, diff)
         else:
             for k, v in self.latestupdate.items():
-                if k == self.id:
+                if k == self.playerid:
                     self.ship.update(self.projectiles, v, diff)
                     continue
 
                 if int(k) == v:
                     self.enemies.pop(k)
                     for s in self.ships:
-                        if s.id == k:
+                        if s.playerid == k:
                             self.ships.remove(s)
                     continue
                 enemy = self.enemies.get(k)
                 if enemy is None:
                     newenemy = LocalEnemyShip(v, k)
-                    self.enemies[newenemy.id] = newenemy
+                    self.enemies[newenemy.playerid] = newenemy
                     self.ships.add(newenemy)
                     continue
                 else:
@@ -80,8 +80,7 @@ class MayhemGame:
     def draw(self):
         self.screen.blit(self.background, (0, 0))
         self.projectiles.draw(self.screen)
-        self.ships.draw(self.screen)
-        # self.barrels.draw(self.screen)
+        self.ships.draw(self.screen)  # self.barrels.draw(self.screen)
 
     async def send(self):
         msg = self.control
@@ -110,7 +109,6 @@ async def game(client):
         t = time.time()
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
-                print(event)
                 exit()
         client.draw()
         client.update()
@@ -122,7 +120,12 @@ async def game(client):
 
 
 async def main():
-    reader, writer = await asyncio.open_connection(config.ADDRESS, config.PORT)
+    try:
+        reader, writer = await asyncio.open_connection(config.ADDRESS,
+                                                       config.PORT)
+    except ConnectionRefusedError:
+        print("could not connect to server")
+        exit()
     init_data = await reader.readline()
     init_data = json.loads(init_data.decode())
     client = MayhemGame(config.FNAME_BG, reader, writer, init_data,
