@@ -11,7 +11,7 @@ PORT = int(sys.argv[2])
 
 SCREENW = 1600
 SCREENH = 900
-FNAME_BG = "images/background.jpg"
+FNAME_BG = None
 
 # 1 / <updates per second> = <time between each update>
 UPDATE_RATE = 1 / 50
