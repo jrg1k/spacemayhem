@@ -37,7 +37,8 @@ FIRE_COOLDOWN = 16
 # Score
 SCORE_FONTNAME = "freesansbold.ttf"
 SCORE_FONTSIZE = 20
-SCORE_POS = (100, 50)
+SCORE_FONTCOLOR = (255, 255, 255)
+SCORE_POS = (10, 10)
 
 
 # Player actions
