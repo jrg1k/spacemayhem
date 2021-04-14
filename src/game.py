@@ -26,7 +26,7 @@ class SpaceShip(GameMovingObject):
         self.dirvec = Vector2(direction)
         self.dirvec.normalize_ip()
         self.lives = config.PLAYER_LIVES  # TODO: IMPLEMENT HEALTH STUFF
-        self.fuel = config.PLAYER_FUEL  # TODO: IMPLEMENT FUEL STUFF
+        self.fuel = config.SHIP_FUELTANK  # TODO: IMPLEMENT FUEL STUFF
         self.action = 0
 
     def move(self, diff=0.0):
@@ -62,7 +62,7 @@ class RemoteSpaceShip(SpaceShip):
             self.dirvec = self.dirvec.rotate(-5 * diff)
         if self.ctrl & config.PCTRL_RIGHT:
             self.dirvec = self.dirvec.rotate(5 * diff)
-        if self.ctrl & config.PCTRL_THRUST:
+        if self.ctrl & config.PCTRL_THRUST and self.fuel > 0:
             self.fuel -= 1
             self.velocity += self.dirvec * diff * 0.2
         if self.cooldowndiff() >= config.SHIP_FIRERATE:
@@ -84,7 +84,7 @@ class RemoteSpaceShip(SpaceShip):
 
     def get_data(self):
         data = (((self.pos.x, self.pos.y), (self.velocity.x, self.velocity.y),
-                (self.dirvec.x, self.dirvec.y)), self.action)
+                (self.dirvec.x, self.dirvec.y)), self.action, self.fuel)
         self.action = 0
         return data
 
@@ -104,6 +104,7 @@ class RemoteSpaceShip(SpaceShip):
         self.pos = Vector2(100, 100)
         self.dirvec = Vector2(0, -1)
         self.velocity = Vector2(0, 0)
+        self.fuel = config.SHIP_FUELTANK
 
     def refuel(self, barrel):
         self.fuel += barrel.fuel
@@ -220,7 +221,6 @@ class LocalProjectile(Sprite, Projectile):
 class FuelBarrel(GameObject):
     def __init__(self, pos):
         super().__init__(pos)
-        self.fuel = 200
 
 
 class RemoteBarrel(FuelBarrel):
