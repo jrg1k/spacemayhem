@@ -37,8 +37,16 @@ class MayhemGame:
         self.enemies = {}
         self.control = 0
         self.updatetime = 0.0
+        self.font = pygame.font.Font(config.SCORE_FONTNAME, config.SCORE_FONTSIZE)
+
+        self.infostring = ("Lives: {}    Fuel: {}    Score: {}".format(self.ship.lives,
+                                                                   self.ship.fuel,
+                                                                   self.ship.score))
 
     def update(self):
+        """
+        Updating gameinformation
+        """
         diff = (time.time() - self.updatetime) / config.UPDATE_RATE
         # TODO: REMOVE LASER WHEN OUT OF SCREEN
         self.projectiles.update(self.ships, diff)
@@ -48,6 +56,9 @@ class MayhemGame:
             for k, v in self.latestupdate.items():
                 if k == self.playerid:
                     self.ship.update(self.projectiles, v, diff)
+                    self.infostring = ("Lives: {}    Fuel: {}    Score: {}".format(self.ship.lives,
+                                                                                   self.ship.fuel,
+                                                                                   self.ship.score))
                     continue
 
                 if int(k) == v:
@@ -66,6 +77,7 @@ class MayhemGame:
                     enemy.update(self.projectiles, v, diff)
             self.latestupdate = None
 
+        # Spaceship handling
         key = pygame.key.get_pressed()
         if key[pygame.K_LEFT]:
             self.control = self.control | config.PCTRL_LEFT
@@ -75,10 +87,16 @@ class MayhemGame:
             self.control = self.control | config.PCTRL_THRUST
         if key[pygame.K_SPACE]:
             self.control = self.control | config.PCTRL_FIRE
+
         self.updatetime = time.time()
 
     def draw(self):
+        """
+        Rendering and drawing game information client side
+        """
         self.screen.blit(self.background, (0, 0))
+        score = self.font.render(self.infostring, True, config.SCORE_FONTCOLOR)
+        self.screen.blit(score, config.SCORE_POS)
         self.projectiles.draw(self.screen)
         self.ships.draw(self.screen)  # self.barrels.draw(self.screen)
 
@@ -128,7 +146,7 @@ async def main():
         exit()
     init_data = await reader.readline()
     init_data = json.loads(init_data.decode())
-    client = MayhemGame(config.FNAME_BG, reader, writer, init_data,
+    client = MayhemGame(None, reader, writer, init_data,
                         (config.SCREENW, config.SCREENH))
     try:
         await asyncio.gather(client.recv(), game(client))
