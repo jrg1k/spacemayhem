@@ -1,4 +1,10 @@
 #!/usr/bin/env python3
+"""
+Server implementation
+authors:
+Jørgen Kristensen
+Ivan Moen
+"""
 
 import asyncio
 import json

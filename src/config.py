@@ -1,6 +1,11 @@
 import sys
+"""
+Config file for game and server parameters
+authors:
+Jørgen Kristensen
+Ivan Moen
+"""
 
-import pygame.font
 
 if len(sys.argv) < 3:
     print("Usage example: ./run 127.0.0.1 1234")
@@ -32,8 +37,6 @@ PCTRL_LEFT = 1
 PCTRL_RIGHT = 2
 PCTRL_THRUST = 4
 PCTRL_FIRE = 8
-FIRE_COOLDOWN = 16
-# 01000 AND 10000 for timetrack 1 sec to reduce fire rate?
 
 # Score
 SCORE_FONTNAME = "freesansbold.ttf"

@@ -5,6 +5,13 @@ import random
 from pygame import Vector2
 from pygame.sprite import Sprite
 
+"""
+Game objects
+authors:
+Jørgen Kristensen
+Ivan Moen
+"""
+
 
 class GameObject:
     """ General game object """
@@ -166,8 +173,9 @@ class LocalPlayerShip(LocalSpaceShip):
 
     def __init__(self, init_data, playerid):
         image = pygame.image.load("images/player.png")
-        image = pygame.transform.scale(image, (
-            config.SHIP_SIZE, config.SHIP_SIZE)).convert_alpha()
+        image = pygame.transform.scale(image,
+                                       (config.SHIP_SIZE,
+                                        config.SHIP_SIZE)).convert_alpha()
         super().__init__(init_data, image, playerid)
 
 
@@ -176,8 +184,9 @@ class LocalEnemyShip(LocalSpaceShip):
 
     def __init__(self, init_data, playerid):
         image = pygame.image.load("images/enemy.png")
-        image = pygame.transform.scale(image, (
-            config.SHIP_SIZE, config.SHIP_SIZE)).convert_alpha()
+        image = pygame.transform.scale(image,
+                                       (config.SHIP_SIZE,
+                                        config.SHIP_SIZE)).convert_alpha()
         super().__init__(init_data, image, playerid)
 
 
@@ -278,9 +287,9 @@ class RemotePlanet(Planet):
     def __init__(self, planet_group):
         posx = random.randrange(config.SCREENCENTER[0],
                                 config.SCREENW + config.SCREENCENTER[0])
-        posy = random.randrange(-config.SCREENH, 0)
-        velocityx = random.randrange(0, config.SCREENCENTER[0])
-        velocityy = random.randrange(config.SCREENH)
+        posy = random.randrange(-100, 0)
+        velocityx = random.randrange(-100, -50)
+        velocityy = random.randrange(0, config.SCREENH)
         planet_type = random.choice(list(config.PLANETS.keys()))
         planet_radius = random.randrange(15, 30)
         planet_speed = random.randrange(2, 6)
@@ -309,8 +318,11 @@ class RemotePlanet(Planet):
         self.updatetime = time.time()
 
     def get_data(self):
-        data = (self.objid, (self.pos.x, self.pos.y),
-                (self.velocity.x, self.velocity.y), self.type, self.radius,
+        data = (self.objid,
+                (self.pos.x, self.pos.y),
+                (self.velocity.x, self.velocity.y),
+                self.type,
+                self.radius,
                 self.speed)
         return data
 
@@ -327,7 +339,10 @@ class LocalPlanet(Sprite, Planet):
                         planet_data[4],
                         planet_data[5])
         self.objid = planet_data[0]
-        self.orig_image = pygame.image.load(config.PLANETS[self.type])
+        image = pygame.image.load(config.PLANETS[self.type])
+        self.image = pygame.transform.scale(image, (self.radius, self.radius))
+        self.rect = self.image.get_rect()
+        self.rect.center = self.pos
 
     def update(self, lookup, data, diff):
         if self.withinboundry() is False:

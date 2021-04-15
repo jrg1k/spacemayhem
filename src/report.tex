@@ -27,7 +27,18 @@
 
     \emph{Give an overarching view of the structure of your solution.}
 
-Describe how your objects fit together, a figure like figure \ref{umlfig} must be included, and you should refer to it in the design section.
+    For this assignment we have one major class hierarchy of gameobjects, with a
+    general layout of a gameobject (ie. a ship, planet etc.) that has two
+    subclasses: One subclass is based on how the object is behaving on the server
+    side, while the other is based on local representation of the object on the
+    class, which means the local class naturally will inherit from the
+    \emph{Sprite} class in pygame as well.
+
+    We also used a object-oriented approach for server and client handling, thus
+    one can create a new server by calling it as an object, and add new players as
+    objects as well.
+
+    Describe how your objects fit together, a figure like figure \ref{umlfig} must be included, and you should refer to it in the design section.
 
 %    \begin{figure}[h]
 %        \centering
@@ -41,7 +52,30 @@ Describe how your objects fit together, a figure like figure \ref{umlfig} must b
 
     \emph{Describe implementation details, particularly those that are not obvious choices}
 
-For the implementation of the paddle, the visual representation on the screen is different from the internal representation used for collision detection, by representing the paddle in this way we acheive...
+    Since the game is played online, most of the information is processed
+    serverside. The players send certain information to the server:
+    \begin{itemize}
+        \item player id
+        \item initial position, velocity and direction
+        \item player input(combination of keyboard buttons left, right, up and
+        spacebar)
+    \end{itemize}
+
+    To illustrate this client-server relation, we can see how the player input
+    handling is working: the player clicks a button(lets say up arrow), the client
+    will do an OR comparison with the default 0: $0000 \lor 0100 = 0100$.
+    The server will then confirm this using an AND operation: $0100 \land
+    0100 = 0100$
+    and do the following on the remote object: increase velocity vector and reduce
+    fuel.
+    This new information will then be sent back to the client which will
+    update the local object with the new information, and draw the new changes on
+    the screen for the player to see.
+    The information sent to and from server-client is coded and decoded into
+    JSON using the python JSON module.
+
+
+    For the implementation of the paddle, the visual representation on the screen is different from the internal representation used for collision detection, by representing the paddle in this way we acheive...
 
 
     \section{Evaluation}

@@ -1,4 +1,10 @@
 #!/usr/bin/env python3
+"""
+Game client implemententation
+authors:
+Jørgen Kristensen
+Ivan Moen
+"""
 
 import pygame
 import config
