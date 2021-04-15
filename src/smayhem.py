@@ -141,7 +141,6 @@ class MayhemGame:
                 return
             msg = data.decode()
             self.latestupdate = json.loads(msg)
-            print(self.latestupdate[0])
 
 
 async def game(client):

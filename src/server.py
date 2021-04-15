@@ -44,7 +44,6 @@ class Player:
         if self.writer.is_closing():
             return
         msg = json.dumps(msg) + "\n"
-        print(msg)
         self.writer.write(msg.encode())
         await self.writer.drain()
 

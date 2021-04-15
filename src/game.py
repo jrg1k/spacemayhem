@@ -67,15 +67,15 @@ class RemoteSpaceShip(SpaceShip):
         self.projectiles = []
         self.firetime = time.time()
         self.respawntime = time.time()
-        self.respawned = 0
+        self.respawned = False
 
     def update(self, ships, diff=0.0):
         if not self.withingame():
             self.respawn()
             return
-        if self.respawned == 1:
-            if time.time() - self.respawntime > 4:
-                self.respawned = 0
+        if self.respawned is True:
+            if time.time() - self.respawntime > config.PLAYER_RESPAWN:
+                self.respawned = False
         self.control(diff)
         self.move(diff)
         for pew in self.projectiles:
@@ -233,9 +233,10 @@ class RemoteProjectile(Projectile):
             return True
         hitpoint = self.pos + self.velocity
         for ship in ships:
+            if self.playerid == ship.playerid or ship.respawned is True:
+                continue
             dist = int(hitpoint.distance_squared_to(ship.pos))
-            if self.playerid != ship.playerid and dist < \
-                    config.SHIP_SIZE_SQUARED:
+            if dist < config.SHIP_SIZE_SQUARED:
                 ship.respawn()
                 self.group.remove(self)
                 self.ship.score += 1
@@ -364,22 +365,3 @@ class LocalPlanet(Sprite, Planet):
         if data:
             self.pos = Vector2(data[1])
         self.rect.center = self.pos
-
-
-class FuelBarrel(GameObject):
-    """ General fuel barrel object """
-
-    def __init__(self, pos):
-        super().__init__(pos)
-
-
-class RemoteBarrel(FuelBarrel):
-    def __init__(self, pos):
-        super().__init__(pos)
-
-
-class LocalBarrel(FuelBarrel):
-    def __init__(self, pos):
-        super().__init__(pos)
-        self.image = pygame.image.load("barrel.png").convert_alpha()
-        self.rect = self.image.get_rect()
