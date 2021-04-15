@@ -66,11 +66,16 @@ class RemoteSpaceShip(SpaceShip):
         self.ctrl = 0
         self.projectiles = []
         self.firetime = time.time()
+        self.respawntime = time.time()
+        self.respawned = 0
 
     def update(self, ships, diff=0.0):
         if not self.withingame():
             self.respawn()
             return
+        if self.respawned == 1:
+            if time.time() - self.respawntime > 4:
+                self.respawned = 0
         self.control(diff)
         self.move(diff)
         for pew in self.projectiles:
@@ -101,10 +106,14 @@ class RemoteSpaceShip(SpaceShip):
         """ Returns a touple containing the objects position, velocity and
         direction, as well as action(player input information), fuel data,
         lives and score """
-        data = (self.action, (self.pos.x, self.pos.y),
+        data = (self.action,
+                (self.pos.x, self.pos.y),
                 (self.velocity.x, self.velocity.y),
-                (self.dirvec.x, self.dirvec.y), self.fuel, self.lives,
-                self.score)
+                (self.dirvec.x, self.dirvec.y),
+                self.fuel,
+                self.lives,
+                self.score,
+                self.respawned)
         self.action = 0
         return data
 
@@ -115,6 +124,8 @@ class RemoteSpaceShip(SpaceShip):
         self.dirvec = Vector2(0, -1)
         self.velocity = Vector2(0, 0)
         self.fuel = config.SHIP_FUELTANK
+        self.respawned = 1
+        self.respawntime = time.time()
         if self.lives == 1:
             self.score -= 1
             self.lives = 5

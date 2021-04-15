@@ -50,6 +50,7 @@ ACTION_DC = 2
 
 # Player variables
 PLAYER_LIVES = 5
+PLAYER_RESPAWN = 4
 
 PLANETS = {
     "barren": "images/Baren.png",
