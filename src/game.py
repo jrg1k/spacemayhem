@@ -112,8 +112,7 @@ class RemoteSpaceShip(SpaceShip):
                 (self.dirvec.x, self.dirvec.y),
                 self.fuel,
                 self.lives,
-                self.score,
-                self.respawned)
+                self.score)
         self.action = 0
         return data
 
@@ -124,7 +123,7 @@ class RemoteSpaceShip(SpaceShip):
         self.dirvec = Vector2(0, -1)
         self.velocity = Vector2(0, 0)
         self.fuel = config.SHIP_FUELTANK
-        self.respawned = 1
+        self.respawned = True
         self.respawntime = time.time()
         if self.lives == 1:
             self.score -= 1
