@@ -11,6 +11,7 @@ PORT = int(sys.argv[2])
 
 SCREENW = 1600
 SCREENH = 900
+SCREENCENTER = (SCREENW / 2, SCREENH / 2)
 FNAME_BG = None
 
 # 1 / <updates per second> = <time between each update>
@@ -40,10 +41,12 @@ SCORE_FONTSIZE = 20
 SCORE_FONTCOLOR = (255, 255, 255)
 SCORE_POS = (10, 10)
 
-
 # Player actions
 ACTION_FIRE = 1
-ACTON_DC = 2
+ACTION_DC = 2
 
 # Player variables
 PLAYER_LIVES = 5
+
+PLANETS = {"barren": "images/Baren.png", "ice": "images/Ice.png",
+           "lava": "images/Lava.png", "terran": "images/Terran.png"}

@@ -1,6 +1,7 @@
 import pygame
 import config
 import time
+import random
 from pygame import Vector2
 from pygame.sprite import Sprite
 
@@ -39,7 +40,7 @@ class SpaceShip(GameMovingObject):
 
 
 class RemoteSpaceShip(SpaceShip):
-    """ Server handling of spaceship """
+    """ Spaceship in the context of the game server """
 
     def __init__(self, pos, velocity, direction, playerid):
         super().__init__(pos, velocity, direction, playerid)
@@ -48,7 +49,6 @@ class RemoteSpaceShip(SpaceShip):
         self.firetime = time.time()
 
     def update(self, ships, diff=0.0):
-        # TODO: IF LASERS OUT OF SCREEN REMOVE THEM
         if not self.withingame():
             self.respawn()
             return
@@ -103,12 +103,12 @@ class LocalSpaceShip(SpaceShip, Sprite):
     """ Local handling of spaceships, drawing etc. """
 
     def __init__(self, init_data, image, playerid):
-        SpaceShip.__init__(self, init_data[0][0], init_data[0][1],
-                           init_data[0][2], playerid)
+        SpaceShip.__init__(self, init_data[1], init_data[2], init_data[3],
+                           playerid)
         Sprite.__init__(self)
-        self.fuel = init_data[2]
-        self.lives = init_data[3]
-        self.score = init_data[4]
+        self.fuel = init_data[4]
+        self.lives = init_data[5]
+        self.score = init_data[6]
         self.orig_image = image
         self.set_image()
 
@@ -118,13 +118,13 @@ class LocalSpaceShip(SpaceShip, Sprite):
 
     def update(self, projectiles, data, diff=0.0):
         if data:
-            self.pos = Vector2(data[0][0])
-            self.velocity = Vector2(data[0][1])
-            self.dirvec = Vector2(data[0][2])
-            self.fuel = data[2]
-            self.lives = data[3]
-            self.score = data[4]
-            if data[1] & config.ACTION_FIRE:
+            self.pos = Vector2(data[1])
+            self.velocity = Vector2(data[2])
+            self.dirvec = Vector2(data[3])
+            self.fuel = data[4]
+            self.lives = data[5]
+            self.score = data[6]
+            if data[0] & config.ACTION_FIRE:
                 projectiles.add(self.fire())
         self.move(diff)
         self.set_image()
@@ -196,6 +196,89 @@ class RemoteProjectile(Projectile):
             if self.playerid != ship.playerid and dist < config.SHIP_SIZE_SQUARED:
                 ship.respawn()
                 self.group.remove(self)
+
+
+class Planet(GameMovingObject):
+    def __init__(self, pos, velocity, planet_type, planet_radius,
+                 planet_speed):
+        super().__init__(pos, velocity)
+        self.type = planet_type
+        self.radius = planet_radius
+        self.radius_squared = self.radius ** 2
+        self.speed = planet_speed
+        self.speed_squared = self.speed ** 2
+        self.updatetime = time.time()
+
+    def move(self, diff=0.0):
+        self.pos += (self.velocity * diff)
+
+    def withinboundry(self):
+        if self.pos.y > config.SCREENH:
+            return False
+        return True
+
+
+class RemotePlanet(Planet):
+    def __init__(self, planet_group):
+        posx = random.randrange(config.SCREENCENTER[0],
+                                config.SCREENW + config.SCREENCENTER[0])
+        posy = random.randrange(-config.SCREENH, 0)
+        velocityx = random.randrange(0, config.SCREENCENTER[0])
+        velocityy = random.randrange(config.SCREENH)
+        planet_type = random.choice(list(config.PLANETS.keys()))
+        planet_radius = random.randrange(15, 30)
+        planet_speed = random.randrange(2, 6)
+        super().__init__((posx, posy), (velocityx, velocityy), planet_type,
+                         planet_radius, planet_speed)
+        self.velocity.scale_to_length(self.speed)
+        self.group = planet_group
+        self.objid = self.__hash__()
+
+    def detect_collision(self, ships):
+        if self.pos.y > config.SCREENH:
+            self.group.remove(self)
+            return True
+        for s in ships:
+            dist = int(self.pos.distance_squared_to(s.pos))
+            if dist < self.radius_squared:
+                s.respawn()
+                return True
+        return False
+
+    def update(self, ships):
+        if self.detect_collision(ships):
+            return
+        diff = (time.time() - self.updatetime) / config.UPDATE_RATE
+        self.move(diff)
+        self.updatetime = time.time()
+
+    def get_data(self):
+        data = (self.objid, (self.pos.x, self.pos.y),
+                (self.velocity.x, self.velocity.y), self.type, self.radius,
+                self.speed)
+        return data
+
+
+class LocalPlanet(Sprite, Planet):
+    """ Handling of obstacle object in the context of local client """
+
+    def __init__(self, planet_data):
+        Sprite.__init__(self)
+        Planet.__init__(self, planet_data[1], planet_data[2], planet_data[3],
+                        planet_data[4], planet_data[5])
+        self.objid = planet_data[0]
+        self.orig_image = pygame.image.load(config.PLANETS[self.type])
+
+    def update(self, diff=0.0):
+        self.move(diff)
+        if self.withinboundry() is False:
+            self.kill()
+
+    def set_image(self):
+        angle = self.velocity.angle_to(1, 0)
+        self.image = pygame.transform.rotate(self.orig_image, angle)
+        self.rect = self.image.get_rect()
+        self.rect.center = self.pos
 
 
 class LocalProjectile(Sprite, Projectile):

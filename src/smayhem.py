@@ -16,6 +16,7 @@ class MayhemGame:
 
     def __init__(self, background, reader, writer, init_data,
                  screenwh=(int, int)):
+        # Boilerplate pygame initialization
         pygame.init()
         self.screen = pygame.display.set_mode(screenwh)
         if background is None:
@@ -24,60 +25,59 @@ class MayhemGame:
         else:
             self.background = pygame.image.load(background)
             self.background = pygame.transform.scale(self.background, screenwh)
+
         self.reader = reader
         self.writer = writer
-        for k, v in init_data.items():
-            self.playerid = k
-            self.ship = LocalPlayerShip(v, self.playerid)
-        self.latestupdate = init_data
+
+        self.playerid = init_data[0]
+        self.ship = LocalPlayerShip(init_data[1], self.playerid)
+        self.latestupdate = None
         self.ships = Group()
         self.ships.add(self.ship)
         self.projectiles = Group()
         # self.barrels = Group()
-        self.enemies = {}
+        self.enemy_ships = {}
         self.control = 0
         self.updatetime = 0.0
-        self.font = pygame.font.Font(config.SCORE_FONTNAME, config.SCORE_FONTSIZE)
+        self.font = pygame.font.Font(config.SCORE_FONTNAME,
+                                     config.SCORE_FONTSIZE)
 
-        self.infostring = ("Lives: {}    Fuel: {}    Score: {}".format(self.ship.lives,
-                                                                   self.ship.fuel,
-                                                                   self.ship.score))
+        self.infostring = (
+            "Lives: {}    Fuel: {}    Score: {}".format(self.ship.lives,
+                                                        self.ship.fuel,
+                                                        self.ship.score))
 
     def update(self):
-        """
-        Updating gameinformation
-        """
+        """ Updating gameinformation """
         diff = (time.time() - self.updatetime) / config.UPDATE_RATE
-        # TODO: REMOVE LASER WHEN OUT OF SCREEN
         self.projectiles.update(self.ships, diff)
         if self.latestupdate is None:
             self.ships.update(None, None, diff)
         else:
-            for k, v in self.latestupdate.items():
-                if k == self.playerid:
-                    self.ship.update(self.projectiles, v, diff)
-                    self.infostring = ("Lives: {}    Fuel: {}    Score: {}".format(self.ship.lives,
-                                                                                   self.ship.fuel,
-                                                                                   self.ship.score))
+            for data in self.latestupdate[0]:
+                if data[0] == self.playerid:
+                    self.ship.update(self.projectiles, data[1], diff)
+                    self.infostring = (
+                        "Lives: {}    Fuel: {}    Score: {}".format(
+                            self.ship.lives, self.ship.fuel, self.ship.score))
                     continue
 
-                if int(k) == v:
-                    self.enemies.pop(k)
-                    for s in self.ships:
-                        if s.playerid == k:
-                            self.ships.remove(s)
-                    continue
-                enemy = self.enemies.get(k)
+                enemy = self.enemy_ships.get(data[0])
                 if enemy is None:
-                    newenemy = LocalEnemyShip(v, k)
-                    self.enemies[newenemy.playerid] = newenemy
+                    newenemy = LocalEnemyShip(data[1], data[0])
+                    self.enemy_ships[newenemy.playerid] = newenemy
                     self.ships.add(newenemy)
                     continue
-                else:
-                    enemy.update(self.projectiles, v, diff)
+                if data[1][0] & config.ACTION_DC:
+                    enemy.kill()
+                    self.enemy_ships.pop(data[0])
+                    continue
+                enemy.update(self.projectiles, data[1], diff)
             self.latestupdate = None
+        self.handle_controls()
+        self.updatetime = time.time()
 
-        # Spaceship handling
+    def handle_controls(self):
         key = pygame.key.get_pressed()
         if key[pygame.K_LEFT]:
             self.control = self.control | config.PCTRL_LEFT
@@ -87,8 +87,6 @@ class MayhemGame:
             self.control = self.control | config.PCTRL_THRUST
         if key[pygame.K_SPACE]:
             self.control = self.control | config.PCTRL_FIRE
-
-        self.updatetime = time.time()
 
     def draw(self):
         """
