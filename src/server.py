@@ -38,6 +38,7 @@ class Player:
         if self.writer.is_closing():
             return
         msg = json.dumps(msg) + "\n"
+        print(msg)
         self.writer.write(msg.encode())
         await self.writer.drain()
 
@@ -85,7 +86,7 @@ class GameServer:
     async def game_update(self):
         while True:
             t = time.time()
-            while len(self.planets) < 10:
+            while len(self.planets) < config.NUM_PLANETS:
                 self.planets.append(RemotePlanet(self.planets))
             for p in self.planets:
                 p.update(self.ships)

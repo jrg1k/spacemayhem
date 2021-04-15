@@ -7,6 +7,7 @@ import time
 import asyncio
 from game import LocalPlayerShip
 from game import LocalEnemyShip
+from game import LocalPlanet
 from pygame.sprite import Group
 from pygame import Surface
 
@@ -35,8 +36,9 @@ class MayhemGame:
         self.ships = Group()
         self.ships.add(self.ship)
         self.projectiles = Group()
-        # self.barrels = Group()
-        self.enemy_ships = {}
+        self.planetgroup = Group()
+        self.ship_lookup = {}
+        self.planet_lookup = {}
         self.control = 0
         self.updatetime = 0.0
         self.font = pygame.font.Font(config.SCORE_FONTNAME,
@@ -53,29 +55,46 @@ class MayhemGame:
         self.projectiles.update(self.ships, diff)
         if self.latestupdate is None:
             self.ships.update(None, None, diff)
+            self.planetgroup.update(self.planet_lookup, None, diff)
         else:
-            for data in self.latestupdate[0]:
-                if data[0] == self.playerid:
-                    self.ship.update(self.projectiles, data[1], diff)
-                    self.infostring = (
-                        "Lives: {}    Fuel: {}    Score: {}".format(
-                            self.ship.lives, self.ship.fuel, self.ship.score))
-                    continue
-
-                enemy = self.enemy_ships.get(data[0])
-                if enemy is None:
-                    newenemy = LocalEnemyShip(data[1], data[0])
-                    self.enemy_ships[newenemy.playerid] = newenemy
-                    self.ships.add(newenemy)
-                    continue
-                if data[1][0] & config.ACTION_DC:
-                    enemy.kill()
-                    self.enemy_ships.pop(data[0])
-                    continue
-                enemy.update(self.projectiles, data[1], diff)
-            self.latestupdate = None
+            self.update_playerships(self.latestupdate[0], diff)
+            self.update_planets(self.latestupdate[1], diff)
+        self.latestupdate = None
         self.handle_controls()
         self.updatetime = time.time()
+
+    def update_planets(self, planetdata, diff):
+        for data in planetdata:
+            planet = self.planet_lookup.get(data[0])
+            if planet is None:
+                newplanet = LocalPlanet(data)
+                self.planet_lookup[data[0]] = newplanet
+                self.planetgroup.add(newplanet)
+                continue
+            planet.update(self.planet_lookup, data, diff)
+
+    def update_playerships(self, playerdata, diff):
+        # looping through ships
+        for data in playerdata:
+            if data[0] == self.playerid:
+                self.ship.update(self.projectiles, data[1], diff)
+                self.infostring = ("Lives: {}    Fuel: {}    Score: {}".format(
+                    self.ship.lives,
+                    self.ship.fuel,
+                    self.ship.score))
+                continue
+
+            enemy = self.ship_lookup.get(data[0])
+            if enemy is None:
+                newenemy = LocalEnemyShip(data[1], data[0])
+                self.ship_lookup[newenemy.playerid] = newenemy
+                self.ships.add(newenemy)
+                continue
+            if data[1][0] & config.ACTION_DC:
+                enemy.kill()
+                self.ship_lookup.pop(data[0])
+                continue
+            enemy.update(self.projectiles, data[1], diff)
 
     def handle_controls(self):
         key = pygame.key.get_pressed()
@@ -96,7 +115,8 @@ class MayhemGame:
         score = self.font.render(self.infostring, True, config.SCORE_FONTCOLOR)
         self.screen.blit(score, config.SCORE_POS)
         self.projectiles.draw(self.screen)
-        self.ships.draw(self.screen)  # self.barrels.draw(self.screen)
+        self.ships.draw(self.screen)
+        self.planetgroup.draw(self.screen)
 
     async def send(self):
         msg = self.control
@@ -118,9 +138,7 @@ class MayhemGame:
 
 
 async def game(client):
-    pygame.init()
     pygame.display.set_caption("Space Mayhem")
-
     while True:
         t = time.time()
         for event in pygame.event.get():
@@ -144,7 +162,10 @@ async def main():
         exit()
     init_data = await reader.readline()
     init_data = json.loads(init_data.decode())
-    client = MayhemGame(config.FNAME_BG, reader, writer, init_data,
+    client = MayhemGame(config.FNAME_BG,
+                        reader,
+                        writer,
+                        init_data,
                         (config.SCREENW, config.SCREENH))
     try:
         await asyncio.gather(client.recv(), game(client))

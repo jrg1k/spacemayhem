@@ -48,5 +48,9 @@ ACTION_DC = 2
 # Player variables
 PLAYER_LIVES = 5
 
-PLANETS = {"barren": "images/Baren.png", "ice": "images/Ice.png",
-           "lava": "images/Lava.png", "terran": "images/Terran.png"}
+PLANETS = {
+    "barren": "images/Baren.png",
+    "ice": "images/Ice.png",
+    "lava": "images/Lava.png",
+    "terran": "images/Terran.png"}
+NUM_PLANETS = 20
