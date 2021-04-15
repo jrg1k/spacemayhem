@@ -14,9 +14,19 @@ class GameObject:
 
 
 class GameMovingObject(GameObject):
+    """ A game object with a velocity vector """
+
     def __init__(self, pos, velocity=(float, float)):
         super().__init__(pos)
         self.velocity = Vector2(velocity)
+
+    def withingame(self):
+        """ Returns boolean value True/False if the object's position is
+        within the screen boundaries set within the config file """
+        if 0 < self.pos.x < config.SCREENW:
+            if 0 < self.pos.y < config.SCREENH:
+                return True
+        return False
 
 
 class SpaceShip(GameMovingObject):
@@ -33,6 +43,8 @@ class SpaceShip(GameMovingObject):
         self.playerid = playerid
 
     def move(self, diff=0.0):
+        """ Calculates change in position in relation to change over time """
+
         length = int(self.velocity.length_squared())
         if length > config.SHIP_SPEED_SQARED:
             self.velocity.scale_to_length(config.SHIP_SPEED)
@@ -58,6 +70,7 @@ class RemoteSpaceShip(SpaceShip):
             pew.update(ships, diff)
 
     def control(self, diff):
+        """ For handling player controls """
         if self.ctrl & config.PCTRL_LEFT:
             self.dirvec = self.dirvec.rotate(-5 * diff)
         if self.ctrl & config.PCTRL_RIGHT:
@@ -75,32 +88,30 @@ class RemoteSpaceShip(SpaceShip):
                 self.firetime = time.time()
         self.ctrl = 0
 
-    def withingame(self):
-        if 0 < self.pos.x < config.SCREENW:
-            if 0 < self.pos.y < config.SCREENH:
-                return True
-        return False
-
     def get_data(self):
-        data = (((self.pos.x, self.pos.y), (self.velocity.x, self.velocity.y),
-                 (self.dirvec.x, self.dirvec.y)), self.action, self.fuel,
-                self.lives, self.score)
+        """ Returns a touple containing the objects position, velocity and
+        direction, as well as action(player input information), fuel data,
+        lives and score """
+        data = (self.action, (self.pos.x, self.pos.y),
+                (self.velocity.x, self.velocity.y),
+                (self.dirvec.x, self.dirvec.y), self.fuel, self.lives,
+                self.score)
         self.action = 0
         return data
 
     def respawn(self):
+        """ Respawns and looses one health, should trigger if hit by enemy
+        laser or flying outside of the map"""
         self.pos = Vector2(100, 100)
         self.dirvec = Vector2(0, -1)
         self.velocity = Vector2(0, 0)
         self.fuel = config.SHIP_FUELTANK
         self.lives -= 1
 
-    def refuel(self, barrel):
-        self.fuel += barrel.fuel
-
 
 class LocalSpaceShip(SpaceShip, Sprite):
-    """ Local handling of spaceships, drawing etc. """
+    """ Space ship in the context of client:
+    drawing sprites, removing sprites and so on """
 
     def __init__(self, init_data, image, playerid):
         SpaceShip.__init__(self, init_data[1], init_data[2], init_data[3],
@@ -113,10 +124,12 @@ class LocalSpaceShip(SpaceShip, Sprite):
         self.set_image()
 
     def fire(self):
-        projectile_pos = self.pos.xy + self.dirvec.xy * 2
+        """ Returns a projectile object """
+        projectile_pos = self.pos.xy + self.dirvec.xy * 4
         return LocalProjectile(projectile_pos, self.dirvec.xy, self.playerid)
 
     def update(self, projectiles, data, diff=0.0):
+        """ Takes data from server and updates values locally """
         if data:
             self.pos = Vector2(data[1])
             self.velocity = Vector2(data[2])
@@ -160,6 +173,8 @@ class LocalEnemyShip(LocalSpaceShip):
 
 
 class Projectile(GameMovingObject):
+    """ General projectile class """
+
     def __init__(self, pos, velocity, playerid=int):
         super().__init__(pos, velocity)
         self.velocity.scale_to_length(config.SHIP_LASER_SPEED)
@@ -168,14 +183,9 @@ class Projectile(GameMovingObject):
     def move(self, diff=0.0):
         self.pos += (self.velocity * diff)
 
-    def withingame(self):
-        if 0 < self.pos.x < config.SCREENW:
-            if 0 < self.pos.y < config.SCREENH:
-                return True
-        return False
-
 
 class RemoteProjectile(Projectile):
+    """ Projectile handling server side """
 
     def __init__(self, pos, velocity, playerid, group):
         super().__init__(pos, velocity, playerid)
@@ -187,6 +197,7 @@ class RemoteProjectile(Projectile):
         self.move(diff)
 
     def detect_collision(self, ships):
+        """ collision detection with ships """
         if not self.withingame():
             self.group.remove(self)
             return True
@@ -282,7 +293,7 @@ class LocalPlanet(Sprite, Planet):
 
 
 class LocalProjectile(Sprite, Projectile):
-    """ It's a projectile """
+    """ Handling of projectile in the context of local client """
 
     def __init__(self, pos, velocity, playerid):
         Sprite.__init__(self)
@@ -315,6 +326,7 @@ class LocalProjectile(Sprite, Projectile):
 
 
 class FuelBarrel(GameObject):
+    """ General fuel barrel object """
 
     def __init__(self, pos):
         super().__init__(pos)
@@ -330,9 +342,3 @@ class LocalBarrel(FuelBarrel):
         super().__init__(pos)
         self.image = pygame.image.load("barrel.png").convert_alpha()
         self.rect = self.image.get_rect()
-
-# class LocalPlayerScore(pygame.font.Font):
-#     def __init__(self, playerid, score):
-#         super().__init__()
-#         self.font = config.SCORE_FONT
-#         self.pos = config.SCORE_POS

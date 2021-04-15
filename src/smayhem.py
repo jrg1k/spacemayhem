@@ -155,4 +155,8 @@ async def main():
 if __name__ == "__main__":
     asyncio.run(main())
 
-    # assets: https://bigbuckbunny.itch.io/platform-assets-pack
+"""
+Credits: 
+Planet sprites: https://helianthus-games.itch.io/animated-pixel-art-planets
+
+"""
